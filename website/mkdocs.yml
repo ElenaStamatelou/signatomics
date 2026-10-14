@@ -1,0 +1,81 @@
+# The documentation website: https://signatomics.elenastamatelou.com
+# Preview on your own computer:   mkdocs serve -f website/mkdocs.yml   → http://127.0.0.1:8000
+# Published by .github/workflows/docs.yml on every push to main.
+
+site_name: signatomics
+site_url: https://signatomics.elenastamatelou.com/
+site_description: Python tools for Olink (PEA) proteomics data — read, check, bridge and analyse, with every step reported.
+site_author: Elena Stamatelou
+repo_url: https://github.com/ElenaStamatelou/signatomics
+repo_name: signatomics
+edit_uri: ""
+copyright: "© 2026 <a href='https://elenastamatelou.com'>Elena Stamatelou</a>"
+
+theme:
+  name: material
+  language: en
+  font:
+    text: Public Sans
+    code: JetBrains Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle: { icon: material/weather-night, name: Dark mode }
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle: { icon: material/weather-sunny, name: Light mode }
+  icon:
+    logo: material/flask-outline
+    repo: fontawesome/brands/github
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - navigation.instant
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+extra_css:
+  - assets/stylesheets/signatomics.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: "#"
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Tutorials: tutorials/index.md
+  - How-to guides: how-to/index.md
+  - Concepts: concepts/index.md
+  - Reference:
+      - reference/index.md
+      - Reading: reference/reading.md
+      - Sample information: reference/samples.md
+      - Quality: reference/quality.md
+      - Bridging plates: reference/bridging.md
+      - Charts: reference/charts.md
+  - About: about.md

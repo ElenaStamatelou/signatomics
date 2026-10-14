@@ -1,0 +1,202 @@
+/* signatomics documentation — calm, book-like look:
+   Bricolage Grotesque headings, Public Sans text, JetBrains Mono code, calm white page,
+   one accent colour (deep teal). */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap");
+
+:root {
+  --sg-font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+}
+
+/* ---------- colour tokens ---------- */
+[data-md-color-scheme="default"] {
+  --sg-paper: #ffffff;
+  --sg-ink: #1d1d1f;
+  --sg-muted: #6b6b73;
+  --sg-rule: #e4e4ea;
+  --sg-wash: #f4f4f7;
+  --sg-accent: #0b6e69;
+  --sg-accent-soft: #e3f2f0;
+  --sg-done: #0b6e69;
+  --sg-todo: #c9c9d1;
+
+  --md-default-bg-color: var(--sg-paper);
+  --md-default-fg-color: var(--sg-ink);
+  --md-default-fg-color--light: var(--sg-muted);
+  --md-primary-fg-color: var(--sg-accent);
+  --md-primary-fg-color--light: #2f8f88;
+  --md-primary-fg-color--dark: #07514d;
+  --md-primary-bg-color: #ffffff;
+  --md-accent-fg-color: #07514d;
+  --md-typeset-a-color: var(--sg-accent);
+  --md-code-bg-color: var(--sg-wash);
+  --md-footer-bg-color: var(--sg-wash);
+  --md-footer-bg-color--dark: var(--sg-wash);
+  --md-footer-fg-color: var(--sg-ink);
+  --md-footer-fg-color--light: var(--sg-muted);
+  --md-footer-fg-color--lighter: var(--sg-muted);
+}
+
+[data-md-color-scheme="slate"] {
+  --sg-paper: #16181b;
+  --sg-ink: #e8e8ec;
+  --sg-muted: #a0a0aa;
+  --sg-rule: #2c2f34;
+  --sg-wash: #1f2226;
+  --sg-accent: #5cc2b8;
+  --sg-accent-soft: #173533;
+  --sg-done: #5cc2b8;
+  --sg-todo: #4a4d55;
+
+  --md-default-bg-color: var(--sg-paper);
+  --md-default-fg-color: var(--sg-ink);
+  --md-default-fg-color--light: var(--sg-muted);
+  --md-primary-fg-color: var(--sg-accent);
+  --md-primary-fg-color--light: #7fd3ca;
+  --md-primary-fg-color--dark: #3a9e95;
+  --md-primary-bg-color: #0d1f1e;
+  --md-accent-fg-color: #8fe0d6;
+  --md-typeset-a-color: var(--sg-accent);
+  --md-code-bg-color: var(--sg-wash);
+  --md-footer-bg-color: var(--sg-wash);
+  --md-footer-bg-color--dark: var(--sg-wash);
+  --md-footer-fg-color: var(--sg-ink);
+  --md-footer-fg-color--light: var(--sg-muted);
+  --md-footer-fg-color--lighter: var(--sg-muted);
+}
+
+body { background: var(--sg-paper); }
+
+/* ---------- header and tabs: white, not a coloured bar ---------- */
+.md-header, .md-tabs {
+  background-color: var(--sg-paper);
+  color: var(--sg-ink);
+}
+.md-header { box-shadow: none; border-bottom: 1px solid var(--sg-rule); }
+.md-header--shadow { box-shadow: none; }
+.md-header__topic:first-child { font-family: var(--sg-font-display); font-weight: 700; letter-spacing: -0.01em; }
+.md-header__button.md-logo { color: var(--sg-accent); }
+.md-tabs { border-bottom: 1px solid var(--sg-rule); }
+.md-tabs__link { opacity: 1; color: var(--sg-muted); font-weight: 600; }
+.md-tabs__link:hover, .md-tabs__item--active .md-tabs__link { color: var(--sg-accent); }
+@media screen and (min-width: 60em) {
+  .md-search__form { background-color: var(--sg-wash); }
+  .md-search__form:hover { background-color: var(--sg-rule); }
+  .md-search__input { color: var(--sg-ink); }
+  .md-search__input::placeholder, .md-search__icon { color: var(--sg-muted); }
+}
+
+/* ---------- type ---------- */
+.md-typeset { font-size: 0.85rem; line-height: 1.65; }
+.md-typeset h1, .md-typeset h2 {
+  font-family: var(--sg-font-display);
+  font-weight: 700;
+  color: var(--sg-ink);
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.md-typeset h1 { font-size: 2.1rem; line-height: 1.05; margin-bottom: 0.8em; }
+.md-typeset h2 { font-size: 1.35rem; line-height: 1.15; margin-top: 2.2em; }
+.md-typeset h3 { font-weight: 700; }
+.md-typeset h2 code, .md-typeset h3 code { font-size: 0.85em; background: var(--sg-accent-soft); color: var(--sg-accent); }
+.md-typeset hr { border-bottom: 1px solid var(--sg-rule); margin: 2.4em 0; }
+.md-typeset .eyebrow {
+  font-size: 0.62rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--sg-muted); margin: 0;
+}
+.md-typeset .lede { font-size: 1.05rem; line-height: 1.55; max-width: 40em; }
+.md-typeset .small { font-size: 0.75rem; color: var(--sg-muted); }
+
+/* ---------- tables: light rules, small-caps headers, as in the chapter ---------- */
+.md-typeset table:not([class]) {
+  border: none; box-shadow: none; font-size: 0.78rem; border-radius: 0;
+}
+.md-typeset table:not([class]) th {
+  background: transparent; color: var(--sg-muted);
+  font-size: 0.62rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 600;
+  border-bottom: 1px solid var(--sg-rule);
+}
+.md-typeset table:not([class]) td { border-top: 1px solid var(--sg-rule); vertical-align: top; }
+.md-typeset table:not([class]) tr:hover { background: var(--sg-wash); box-shadow: none; }
+
+/* ---------- code ---------- */
+.md-typeset pre > code { border-radius: 10px; }
+.md-typeset code { border-radius: 5px; }
+/* printed reports from the package: plain, muted panel */
+.md-typeset pre.report, .md-typeset .report pre > code {
+  background: var(--sg-paper); border: 1px dashed var(--sg-rule); color: var(--sg-ink);
+}
+
+/* ---------- boxes ---------- */
+/* "On real data" box: a soft grey panel */
+.md-typeset .example-box {
+  background: var(--sg-wash); border-radius: 14px; padding: 0.9rem 1.1rem 0.4rem; margin: 1.2em 0;
+}
+.md-typeset .example-box .tag {
+  font-size: 0.6rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--sg-accent); margin: 0 0 0.3em;
+}
+/* admonitions: flat, accent left edge */
+.md-typeset .admonition, .md-typeset details {
+  border: 1px solid var(--sg-rule); border-left: 4px solid var(--sg-accent);
+  border-radius: 10px; box-shadow: none; font-size: 0.8rem;
+}
+.md-typeset .admonition-title, .md-typeset summary { background: transparent !important; font-weight: 700; }
+.md-typeset .admonition-title::before, .md-typeset summary::before { background-color: var(--sg-accent) !important; }
+.md-typeset .admonition.warning, .md-typeset details.warning { border-left-color: #b8372f; }
+.md-typeset .admonition.warning > .admonition-title::before,
+.md-typeset details.warning > summary::before { background-color: #b8372f !important; }
+/* "Check yourself" questions (``??? check "..."``) */
+.md-typeset details.check { border-left-width: 1px; border-radius: 12px; }
+.md-typeset details.check > summary::before {
+  -webkit-mask-image: var(--md-admonition-icon--question); mask-image: var(--md-admonition-icon--question);
+}
+
+/* ---------- home page ---------- */
+.sg-hero { padding: 1.2rem 0 0.4rem; }
+.md-typeset .sg-hero h1 {
+  font-size: clamp(2.4rem, 7vw, 3.4rem); line-height: 1; letter-spacing: -0.03em; margin: 0.3em 0 0.4em;
+}
+.md-typeset .sg-hero .md-button { margin: 0.4em 0.4em 0 0; border-radius: 999px; }
+
+/* the workflow picture */
+.sg-flow { margin: 1.6em 0 0.6em; overflow-x: auto; }
+.sg-flow svg { display: block; width: 100%; height: auto; min-width: 640px; }
+.sg-flow text { font-family: var(--md-text-font-family, "Public Sans"), sans-serif; fill: var(--sg-ink); font-size: 13px; }
+.sg-flow .fn { font-family: "JetBrains Mono", monospace; font-size: 10.5px; fill: var(--sg-muted); }
+.sg-flow .num { font-size: 11px; font-weight: 600; fill: var(--sg-muted); letter-spacing: .06em; }
+.sg-flow .done circle { fill: var(--sg-done); }
+.sg-flow .done .tick { stroke: var(--sg-paper); }
+.sg-flow .todo circle { fill: var(--sg-paper); stroke: var(--sg-todo); stroke-width: 2; stroke-dasharray: 4 3; }
+.sg-flow .line { stroke: var(--sg-rule); stroke-width: 2; }
+.sg-flow .line.done { stroke: var(--sg-done); }
+.sg-flow .lbl { font-weight: 700; }
+.sg-flow .todo .lbl { fill: var(--sg-muted); }
+.sg-flow-caption { font-size: 0.72rem; color: var(--sg-muted); }
+
+/* grid cards */
+.md-typeset .grid.cards > ul > li, .md-typeset .grid > .card {
+  border: 1px solid var(--sg-rule); border-radius: 14px; box-shadow: none;
+}
+.md-typeset .grid.cards > ul > li:hover { border-color: var(--sg-accent); box-shadow: none; }
+.md-typeset .grid.cards .lg { color: var(--sg-accent); }
+
+/* step labels in tutorials */
+.md-typeset .step-label {
+  display: block; font-size: 0.6rem; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--sg-accent); margin-bottom: -0.4em;
+}
+
+/* "coming next" lists */
+.md-typeset ul.soon { list-style: none; padding-left: 0; margin-left: 0; }
+.md-typeset ul.soon li { padding-left: 1.6em; position: relative; }
+.md-typeset ul.soon li::before {
+  content: ""; position: absolute; left: 0.2em; top: 0.55em; width: 9px; height: 9px;
+  border-radius: 50%; border: 1.5px solid var(--sg-todo);
+}
+.md-typeset ul.soon li.done::before { background: var(--sg-done); border-color: var(--sg-done); }
+
+/* argument names and defaults never break in the middle of a word */
+.md-typeset table:not([class]) td code { white-space: nowrap; }
+
+/* cards: two per row on wide screens (four cards = 2 × 2, no lonely last card) */
+.md-typeset .grid.cards > ul { grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }

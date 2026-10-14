@@ -1,0 +1,29 @@
+# The package's "ID card": its name, version, description and which other packages it needs.
+# Python's installer (pip) reads this file. Explained in docs/package_anatomy.md.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "signatomics"
+version = "0.0.1"
+description = "Python tools for Olink (PEA) proteomics data: read, check, bridge and analyse, with every step reported. First module of the signatomics family."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Elena Stamatelou" }]
+dependencies = [
+    "numpy",
+    "pandas",
+]
+
+[project.optional-dependencies]
+# Extensions: installed only when needed, e.g.  pip install signatomics[olink]
+olink = ["pyarrow", "openpyxl", "plotly"]   # parquet (Explore HT / Reveal), Excel sample lists, charts
+dev = ["pytest"]                  # for running the automatic tests
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

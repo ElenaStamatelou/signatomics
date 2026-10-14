@@ -1,0 +1,22 @@
+# Python / editor clutter
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store
+
+# Never commit real participant data: examples use made-up data only
+data/
+*.sav
+*.parquet
+*.xlsx
+*.egg-info/
+build/
+dist/
+
+# Built documentation website (made by mkdocs build; published by GitHub Actions)
+website/site/
+
+# Private notes (plan, decisions, setup): kept locally, never published
+_private/
