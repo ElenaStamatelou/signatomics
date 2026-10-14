@@ -379,12 +379,8 @@ def _convert_types(df: pd.DataFrame, report: list[str]) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------------------------
-# Public functions
-# ---------------------------------------------------------------------------------------------
-
-def tidy_sample_ids(ids: pd.Series) -> pd.Series:
-    """Make sample IDs comparable between files.
+def _tidy_sample_ids(ids: pd.Series) -> pd.Series:
+    """Make sample IDs comparable between files (used wherever sample IDs are matched).
 
     Removes spaces at the ends, uses capitals, and treats spaces, underscores and hyphens the
     same: ``"308 BIS"``, ``"308_bis"`` and ``"308-BIS"`` all become ``"308_BIS"``.
@@ -397,6 +393,10 @@ def tidy_sample_ids(ids: pd.Series) -> pd.Series:
         .str.replace(r"[\s_\-]+", "_", regex=True)
     )
 
+
+# ---------------------------------------------------------------------------------------------
+# Public functions
+# ---------------------------------------------------------------------------------------------
 
 def read_npx(path, *, sep: str | None = None, column_map: dict | None = None,
              verbose: bool = True) -> pd.DataFrame:

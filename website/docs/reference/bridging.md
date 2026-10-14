@@ -1,6 +1,6 @@
 ---
 title: "Bridging Olink plates in Python"
-description: "Bridge Olink plates and projects in Python: per-protein plate shifts from bridging samples, LOD shifted along, and independent checks."
+description: "Bridge Olink plates and projects in Python: per-protein plate shifts from bridging samples, LOD shifted along, independent checks and Plotly charts."
 ---
 
 # Bridging Olink plates
@@ -14,7 +14,10 @@ added to every sample on the other plate, which puts that plate on the scale of 
 plate**. The reference plate itself is not changed.
 
 NPX is on a log2 scale, so bridging is an *addition*: a difference of 1 NPX is a factor 2. Only
-NPX data can be bridged.
+NPX data can be bridged. Skip this step when all samples are on one plate.
+
+Like the quality step, bridging has two halves: **look** ([`bridge_check`](#bridge_check) and the
+[charts](#charts-for-this-step)), then **act** ([`bridge_plates`](#bridge_plates)).
 
 **Recommended order:** `apply_qc` → `bridge_check` → `bridge_plates` → `bridge_check` again,
 plus `plot_bridge_pca`.
@@ -44,7 +47,7 @@ before bridging (how big is the difference?) and after (is it gone?).
 
 ```python
 bridge_check(npx, *, batch="PlateID", reference=None, group=None, bridges=None,
-             exclude_warnings=True, exclude_below_lod=False, tolerance=0.1,
+             exclude_warnings=True, exclude_below_lod=False, min_bridges=8, tolerance=0.1,
              show_ids=True, verbose=True) -> BridgeCheck
 ```
 
@@ -54,6 +57,7 @@ bridge_check(npx, *, batch="PlateID", reference=None, group=None, bridges=None,
 |---|---|---|---|
 | `npx` | DataFrame | — | all plates in one table (`pd.concat` separate files) |
 | `group` | str | `None` | a sample-information column: checks whether the bridging samples cover every group, and whether the shift is the same in each group |
+| `min_bridges` | int | `8` | fewer bridging samples than this gives a warning; proteins with fewer usable pairs are flagged in `.factors` |
 | `tolerance` | float | `0.1` | a protein whose shift is larger than this (NPX) counts as "still shifted" |
 | `show_ids` | bool | `True` | list sample IDs |
 | `verbose` | bool | `True` | print the report |
@@ -63,10 +67,29 @@ bridge_check(npx, *, batch="PlateID", reference=None, group=None, bridges=None,
 | Attribute | What it holds |
 |---|---|
 | `.lines` | the report lines |
-| `.differences` | one row per bridging sample, protein and plate (see [`bridge_differences`](#bridge_differences)) |
+| `.differences` | one row per bridging sample, protein and non-reference plate: `sample` (the tidy ID), the protein columns, `plate`, `reference`, `NPX_reference`, `NPX_plate` and `difference` (= plate − reference). The reference used is in `.attrs["reference"]` |
 | `.proteins` | per plate and protein: `shift` (median difference), `spread` (IQR), `bridges` (number of pairs) |
 | `.samples` | per plate and bridging sample: `shift` (median over proteins), to find odd bridging samples |
+| `.factors` | per plate and protein: the `adjustment` that `bridge_plates` adds (see below) |
 | `.by_group` | with `group`: per protein, the shift in each group and their `difference` |
+
+The **factors** table holds, for each protein and each plate other than the reference:
+
+```text
+adjustment = − median( NPX on the plate − NPX on the reference )     over the bridging samples
+```
+
+| Column | What it holds |
+|---|---|
+| `plate`, `reference` | the plate that will be adjusted, and the reference |
+| `OlinkID`, `Assay` | the protein |
+| `adjustment` | NPX to **add** to this protein on this plate (empty if no bridging pair) |
+| `bridges` | number of bridging pairs used |
+| `spread` | IQR of the bridge differences: noise that bridging cannot remove |
+| `few_bridges` | True when `bridges < min_bridges` |
+
+You can inspect it, save it (`.to_csv`) and apply it later with
+`bridge_plates(..., factors=...)`.
 
 For each plate, the report says:
 - how many bridging samples there are;
@@ -80,14 +103,21 @@ For each plate, the report says:
 !!! note "Checking after bridging"
     On a table that is already bridged, the shifts are about 0 *by construction*, because the
     same samples were used to compute the adjustment. The report says so. The independent check
-    is [`plot_bridge_pca`](charts.md#plot_bridge_pca).
+    is [`plot_bridge_pca`](#plot_bridge_pca).
 
-**Errors.** The same as `bridge_differences`, plus `KeyError` when `group` is not a column.
+**Errors**
+
+- `ValueError`: there is no NPX column, or only one plate.
+- `KeyError`: `batch` or `group` is not a column.
+- `ValueError`: `reference` is not one of the plates.
+
+The table `.differences` is empty, and the report warns, when no sample is on two plates.
 
 **Example** (PAD000040, the two raw plate files)
 
 ```python
-so.bridge_check(clean, group="diabetes", show_ids=False)
+chk = so.bridge_check(clean, group="diabetes", show_ids=False)
+chk.factors.sort_values("adjustment").head()
 ```
 
 ```text
@@ -100,43 +130,6 @@ Bridging check
     bridging samples that shift differently from the others: 2 (IDs hidden)
   'diabetes' among the bridging samples: No diabetes: 9 of 62; T2DM: 9 of 46; Prediabetes: 10 of 23
     overall shift per group: No diabetes +0.56; Prediabetes +0.57; T2DM +0.53 (largest difference 0.04 NPX)
-```
-
----
-
-## `bridge_factors`
-
-Compute the shift per protein and plate. It changes nothing: you get a table you can inspect,
-save (`.to_csv`) and later apply with `bridge_plates(..., factors=...)`.
-
-```python
-bridge_factors(npx, *, batch="PlateID", reference=None, bridges=None, exclude_warnings=True,
-               exclude_below_lod=False, min_bridges=8) -> pandas.DataFrame
-```
-
-For each protein and each plate other than the reference:
-
-```text
-adjustment = − median( NPX on the plate − NPX on the reference )     over the bridging samples
-```
-
-**Inputs.** The [shared arguments](#shared-arguments), plus `min_bridges` (default 8). Proteins
-with fewer usable pairs are flagged.
-
-**Output.** One row per plate and protein:
-
-| Column | What it holds |
-|---|---|
-| `plate`, `reference` | the plate that will be adjusted, and the reference |
-| `OlinkID`, `Assay` | the protein |
-| `adjustment` | NPX to **add** to this protein on this plate (empty if no bridging pair) |
-| `bridges` | number of bridging pairs used |
-| `spread` | IQR of the bridge differences: noise that bridging cannot remove |
-| `few_bridges` | True when `bridges < min_bridges` |
-
-```python
-factors = so.bridge_factors(clean)
-factors.sort_values("adjustment").head()
 ```
 
 ---
@@ -156,7 +149,7 @@ bridge_plates(npx, *, factors=None, batch="PlateID", reference=None, bridges=Non
 | Argument | Type | Default | Meaning |
 |---|---|---|---|
 | `npx` | DataFrame | — | all plates in one table, best after `apply_qc` |
-| `factors` | DataFrame | `None` | a table from `bridge_factors` to apply; computed here when `None` |
+| `factors` | DataFrame | `None` | a factors table to apply, e.g. `bridge_check(...).factors` checked or saved earlier; computed here when `None` |
 | `min_bridges` | int | `8` | proteins with fewer pairs are named in the report |
 | `verbose` | bool | `True` | print the report |
 
@@ -194,26 +187,72 @@ Bridging report
 
 ---
 
-## `bridge_differences`
+## Charts for this step
 
-The building block of the other bridging functions. For each bridging sample and protein, it
-gives how much higher the other plate reads than the reference.
+Every chart returns a Plotly figure; see
+[the rules for charts](index.md#rules-that-hold-for-every-function).
+
+### `plot_bridge_shift`
+
+For each protein, how much higher the other plate reads than the reference, for the same samples:
+- grey dots: single bridging samples;
+- coloured marker: the median, which is the shift `bridge_plates` removes;
+- bar: the middle 50%.
+
+Before bridging the markers sit away from 0; after bridging they sit on 0.
 
 ```python
-bridge_differences(npx, *, batch="PlateID", reference=None, bridges=None,
-                   exclude_warnings=True, exclude_below_lod=False) -> pandas.DataFrame
+plot_bridge_shift(npx, *, batch="PlateID", reference=None, bridges=None, exclude_warnings=True,
+                  exclude_below_lod=False, show_ids=False) -> Figure
 ```
 
-**Output.** One row per bridging sample, protein and non-reference plate, with these columns:
-- `sample` (the tidy ID) and the protein columns;
-- `plate`, `reference`, `NPX_reference` and `NPX_plate`;
-- `difference` (= plate − reference).
+Arguments as in the [shared arguments](#shared-arguments). At most 3 plates besides the reference.
 
-The reference that was used is stored in `df.attrs["reference"]`. The table is empty when no
-sample is on two plates.
+**Errors.** `ValueError` when there are no bridging samples, or more than 3 other plates.
 
-**Errors**
+### `plot_bridge_scatter`
 
-- `ValueError`: there is no NPX column, or only one plate.
-- `KeyError`: `batch` is not a column.
-- `ValueError`: `reference` is not one of the plates.
+Bridging samples, with NPX on the reference plate (x) against the other plate (y), one panel per
+protein. On the dashed diagonal both plates agree; dotted lines mark each plate's LOD.
+
+```python
+plot_bridge_scatter(npx, proteins, *, batch="PlateID", reference=None, exclude_warnings=True,
+                    show_ids=False, cols=3) -> Figure
+```
+
+| Argument | Default | Meaning |
+|---|---|---|
+| `proteins` | — | 1 to 12 protein names (`Assay`) |
+| `cols` | `3` | panels per row |
+
+**Errors.** `ValueError` for 0 or more than 12 proteins, or a protein without bridging pairs.
+
+### `plot_bridge_pca`
+
+A PCA of the bridging samples, coloured by plate, before and (optionally) after bridging. Each
+bridging sample appears once per plate, and a thin line joins its measurements. After bridging,
+the plates should overlap and the lines shrink.
+
+**This is the independent check of bridging.** The shift was fitted per protein; the PCA looks at
+all proteins together. The subtitle gives the median distance between a sample's measurements,
+before and after.
+
+```python
+plot_bridge_pca(before, after=None, *, batch="PlateID", samples="bridges",
+                exclude_warnings=True, show_ids=False) -> Figure
+```
+
+| Argument | Default | Meaning |
+|---|---|---|
+| `before` | — | table before bridging |
+| `after` | `None` | the same table after `bridge_plates`; adds a second panel |
+| `samples` | `"bridges"` | `"bridges"` (only samples on more than one plate) or `"all"` |
+
+Proteins with more than half of their values missing are left out. Other missing values are
+filled with the protein's median, and proteins are scaled before the PCA.
+
+**Errors.** `ValueError` with fewer than 3 measurements, or an unknown `samples` value.
+
+!!! example "On PAD000040"
+    Before bridging, a sample's two measurements lie **6.5** apart (median). After bridging they
+    lie **1.8** apart.

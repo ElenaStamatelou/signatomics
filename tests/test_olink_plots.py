@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import pytest
 
 from signatomics.olink import (plot_below_lod, plot_group_by_plate, plot_npx_strip,
-                               plot_sample_qc, sample_qc_table)
+                               plot_sample_qc, qc_report)
 
 
 @pytest.fixture
@@ -74,7 +74,9 @@ def test_sample_qc_finds_the_abnormal_sample():
                  NPX=j * 0.5 + rng.normal(0, 0.4) + (4 if k == 7 else 0))
             for k in range(60) for j in range(20)]
     df = pd.DataFrame(rows)
-    table = sample_qc_table(df, sd=3)
+    rep = qc_report(df, outlier_sd=3, verbose=False)
+    table = rep.samples
     assert table.loc[table["outlier"], "SampleID"].tolist() == ["S07"]
+    assert "look odd" in str(rep) and "S07" in str(rep)
     fig = plot_sample_qc(df, sd=3)
     assert any(t.name and "outlier" in t.name for t in fig.data)

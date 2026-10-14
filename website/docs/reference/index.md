@@ -8,7 +8,7 @@ description: "Every function of signatomics.olink: reading Olink exports, sample
 <p class="lede">Every public function in <code>signatomics.olink</code>: what it does, what goes
 in, what comes out, the errors it can raise, and an example on real data.</p>
 
-<p class="small">Version 0.0.1 · updated 13 Oct 2026</p>
+<p class="small">Version 0.0.1 · updated 14 Oct 2026</p>
 
 ```python
 import signatomics.olink as so      # every function below is available as so.<function>
@@ -16,13 +16,20 @@ import signatomics.olink as so      # every function below is available as so.<f
 
 ## Functions by step
 
-| Step | Functions |
-|---|---|
-| [1. Reading](reading.md) | [`read_npx`](reading.md#read_npx), [`tidy_sample_ids`](reading.md#tidy_sample_ids) |
-| [2. Sample information](samples.md) | [`add_sample_info`](samples.md#add_sample_info) |
-| [3. Quality](quality.md) | [`qc_report`](quality.md#qc_report), [`apply_qc`](quality.md#apply_qc), [`below_lod_by_group`](quality.md#below_lod_by_group), [`sample_qc_table`](quality.md#sample_qc_table) |
-| [4. Bridging plates](bridging.md) | [`bridge_check`](bridging.md#bridge_check), [`bridge_factors`](bridging.md#bridge_factors), [`bridge_plates`](bridging.md#bridge_plates), [`bridge_differences`](bridging.md#bridge_differences) |
-| [5. Charts](charts.md) | [`plot_below_lod`](charts.md#plot_below_lod), [`plot_npx_strip`](charts.md#plot_npx_strip), [`plot_group_by_plate`](charts.md#plot_group_by_plate), [`plot_sample_qc`](charts.md#plot_sample_qc), [`plot_bridge_shift`](charts.md#plot_bridge_shift), [`plot_bridge_pca`](charts.md#plot_bridge_pca), [`plot_bridge_scatter`](charts.md#plot_bridge_scatter) |
+Each step has one function that **looks** (changes nothing) and, where data changes, one that
+**acts**. The tables a look function finds are inside its result, so there are no extra
+helper functions to learn. Charts sit with the step whose result they show.
+
+| Step | Look | Act | Charts |
+|---|---|---|---|
+| [1. Reading](reading.md) | | [`read_npx`](reading.md#read_npx) | |
+| [2. Sample information](samples.md) | | [`add_sample_info`](samples.md#add_sample_info) | |
+| [3. Quality](quality.md) | [`qc_report`](quality.md#qc_report) | [`apply_qc`](quality.md#apply_qc) | [`plot_below_lod`](quality.md#plot_below_lod), [`plot_npx_strip`](quality.md#plot_npx_strip), [`plot_group_by_plate`](quality.md#plot_group_by_plate), [`plot_sample_qc`](quality.md#plot_sample_qc) |
+| [4. Bridging plates](bridging.md) | [`bridge_check`](bridging.md#bridge_check) | [`bridge_plates`](bridging.md#bridge_plates) | [`plot_bridge_shift`](bridging.md#plot_bridge_shift), [`plot_bridge_scatter`](bridging.md#plot_bridge_scatter), [`plot_bridge_pca`](bridging.md#plot_bridge_pca) |
+
+What the look functions return: `QCReport` (from `qc_report`) and `BridgeCheck` (from
+`bridge_check`). Both print as a report and hold the tables behind it as attributes, for example
+`qc_report(...).samples` or `bridge_check(...).factors`.
 
 ## Rules that hold for every function
 
@@ -35,6 +42,11 @@ import signatomics.olink as so      # every function below is available as so.<f
   `show_ids=False` it gives counts only, which are safe to share.
 - **Olink's control samples and control assays** are recognised from `SampleType` / `AssayType`.
   They are left out of all counts, checks and charts, and `apply_qc` removes them.
+- **Charts** return a Plotly figure: interactive in a notebook, `fig.write_image("chart.png")` for
+  a static file, `fig.write_html("chart.html")` for a file you can share. Colours come from a
+  colour-blind-checked palette in a fixed order, and identity is never shown by colour alone
+  (legends, marker shapes, hollow versus filled dots). Sample IDs appear in the hover text only
+  with `show_ids=True`.
 
 ## The standard table
 
@@ -62,7 +74,7 @@ Columns added by later steps:
 
 | Column | Added by | What it holds |
 |---|---|---|
-| `sample` | `add_sample_info` | the tidy sample ID used for matching (see `tidy_sample_ids`) |
+| `sample` | `add_sample_info` | the tidy sample ID used for matching ("308 BIS" and "308_bis" both become "308_BIS"; see [`add_sample_info`](samples.md#add_sample_info)) |
 | *(your sample-list columns)* | `add_sample_info` | e.g. `diabetes`, `age`, `sex` |
 | `NPX_unbridged`, `LOD_unbridged` | `bridge_plates` | the values before bridging |
 | `Bridge_adjustment` | `bridge_plates` | NPX added to this row by bridging (0 on the reference plate) |

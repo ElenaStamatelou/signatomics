@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .reader import tidy_sample_ids
+from .reader import _tidy_sample_ids
 
 
 def _read_sample_list(samples) -> pd.DataFrame:
@@ -41,8 +41,9 @@ def add_sample_info(npx: pd.DataFrame, samples, *, on: str, npx_on: str = "Sampl
     npx_on : the ID column in the protein data (default ``"SampleID"``).
     verbose : print the matching report.
 
-    IDs are tidied on both sides before matching (``tidy_sample_ids``: spaces/underscores/
-    hyphens and capitals do not matter), the original IDs are kept, and the tidy ID is added as
+    IDs are tidied on both sides before matching (spaces at the ends are removed; spaces,
+    underscores, hyphens and capitals do not matter, so ``"308 BIS"`` matches ``"308_bis"``;
+    leading zeros are kept), the original IDs are kept, and the tidy ID is added as
     column ``sample``. Sample-list columns whose name already exists in the protein data get the
     ending ``_samplelist``. Protein rows without a match are kept, with empty sample information.
 
@@ -58,7 +59,7 @@ def add_sample_info(npx: pd.DataFrame, samples, *, on: str, npx_on: str = "Sampl
 
     report = []
     info = info[info[on].notna()].copy()
-    info["sample"] = tidy_sample_ids(info[on].astype(str).str.replace(r"\.0$", "", regex=True))
+    info["sample"] = _tidy_sample_ids(info[on].astype(str).str.replace(r"\.0$", "", regex=True))
     duplicated = info.loc[info["sample"].duplicated(keep=False), "sample"].unique()
     if len(duplicated):
         raise ValueError(
@@ -67,7 +68,7 @@ def add_sample_info(npx: pd.DataFrame, samples, *, on: str, npx_on: str = "Sampl
         )
 
     df = npx.copy()
-    df["sample"] = tidy_sample_ids(df[npx_on])
+    df["sample"] = _tidy_sample_ids(df[npx_on])
 
     protein_ids, list_ids = set(df["sample"]), set(info["sample"])
     raw_protein = set(df[npx_on].astype(str).str.strip())

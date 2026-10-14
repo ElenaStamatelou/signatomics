@@ -77,13 +77,14 @@ def _measurement_table(df: pd.DataFrame) -> pd.DataFrame:
     return m
 
 
-def below_lod_by_group(npx: pd.DataFrame, group: str) -> pd.DataFrame:
+def _below_lod_by_group(npx: pd.DataFrame, group: str) -> pd.DataFrame:
     """Share (0-1) of measurements below the detection limit, per protein and per group.
 
     Returns one row per protein, one column per group, plus ``difference`` (largest minus
     smallest share). A large difference means the protein is detectable in one group but not in
     another - that can itself be a biological signal, so such proteins should not be removed
-    just because they are often below LOD overall.
+    just because they are often below LOD overall. Shown as ``qc_report(...,
+    group=...).below_lod_by_group``.
     """
     ctrl_samples, ctrl_assays = _control_masks(npx)
     df = npx[~(ctrl_samples | ctrl_assays)]
@@ -100,6 +101,32 @@ def below_lod_by_group(npx: pd.DataFrame, group: str) -> pd.DataFrame:
     return t.sort_values("difference", ascending=False)
 
 
+def _sample_qc_table(npx: pd.DataFrame, *, sd: float = 3.0) -> pd.DataFrame:
+    """Per measurement: median and IQR of its values over all proteins, and outlier flags.
+
+    A measurement is an outlier when its median or its IQR is more than ``sd`` standard
+    deviations from the mean of all measurements (per panel). Outliers point to technical
+    problems (dilution, haemolysis, pipetting) rather than biology. Shown as
+    ``qc_report(...).samples`` and drawn by ``plot_sample_qc``.
+    """
+    ctrl_samples, ctrl_assays = _control_masks(npx)
+    df = npx[~(ctrl_samples | ctrl_assays)]
+    value = _value_col(df)
+    keys = _measurement_keys(df)
+    t = (df.groupby(keys, dropna=False)[value]
+         .agg(median="median", iqr=lambda s: s.quantile(0.75) - s.quantile(0.25))
+         .reset_index())
+    by = ["Panel"] if "Panel" in t.columns else []
+    for col in ("median", "iqr"):
+        stats = t.groupby(by)[col] if by else t[col]
+        mean = stats.transform("mean") if by else stats.mean()
+        std = stats.transform("std") if by else stats.std()
+        t[f"{col}_low"], t[f"{col}_high"] = mean - sd * std, mean + sd * std
+    t["outlier"] = ((t["median"] < t["median_low"]) | (t["median"] > t["median_high"]) |
+                    (t["iqr"] < t["iqr_low"]) | (t["iqr"] > t["iqr_high"]))
+    return t
+
+
 @dataclass
 class QCReport:
     """Result of ``qc_report``: summary lines plus the tables behind them."""
@@ -108,6 +135,7 @@ class QCReport:
     measurements: pd.DataFrame | None = None    # one row per sample measurement (no controls)
     plates: pd.DataFrame | None = None          # one row per plate
     proteins: pd.DataFrame | None = None        # one row per protein (no control assays)
+    samples: pd.DataFrame | None = None         # per measurement: median, IQR, outlier flag
     group_by_plate: pd.DataFrame | None = None  # counts of each group on each plate
     below_lod_by_group: pd.DataFrame | None = None  # share below LOD per protein and group
 
@@ -119,20 +147,26 @@ class QCReport:
 
 
 def qc_report(npx: pd.DataFrame, *, group: str | None = None, max_below_lod: float = 0.5,
-              show_ids: bool = True, verbose: bool = True) -> QCReport:
+              outlier_sd: float = 3.0, show_ids: bool = True, verbose: bool = True) -> QCReport:
     """Look at data quality without changing anything.
 
     Checks: control samples and assays, quality warnings, empty measurements, samples measured
     more than once on the same plate (repeats), samples on more than one plate (bridging
-    samples), proteins mostly below the detection limit, and — if ``group`` is given — whether a
-    group is mixed up with plates.
+    samples), proteins mostly below the detection limit, sample measurements that look odd
+    (outliers in median or spread over all proteins), and — if ``group`` is given — whether a
+    group is mixed up with plates and whether detectability differs between groups.
 
     Parameters
     ----------
     npx : table from ``read_npx`` (optionally with ``add_sample_info``).
     group : a sample-information column to check against the plates, e.g. ``"diabetes"``.
     max_below_lod : share (0-1) above which a protein is reported as "mostly below LOD".
+    outlier_sd : a measurement whose median or IQR over all proteins is more than this many
+        standard deviations from the others is reported as an outlier (``plot_sample_qc``).
     show_ids : list sample IDs in the report; ``False`` gives counts only (for sharing).
+
+    Returns a ``QCReport``: the summary lines, plus the tables ``measurements``, ``plates``,
+    ``proteins``, ``samples`` and (with ``group``) ``group_by_plate`` and ``below_lod_by_group``.
     """
     value, protein = _value_col(npx), _protein_col(npx)
     rep = QCReport()
@@ -192,6 +226,17 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, max_below_lod: flo
     else:
         rep.lines.append("no LOD column: detection-limit check skipped")
 
+    s = _sample_qc_table(df, sd=outlier_sd)
+    rep.samples = s
+    odd = s[s["outlier"]]
+    if len(odd):
+        rep.lines.append(f"sample measurements that look odd (median or spread over all proteins more "
+                         f"than {outlier_sd:g} SD from the others; see plot_sample_qc): "
+                         f"{_ids(odd['SampleID'], show_ids)}")
+    else:
+        rep.lines.append(f"no sample measurement looks odd (median and spread over all proteins "
+                         f"within {outlier_sd:g} SD)")
+
     if group:
         if group not in df.columns:
             raise KeyError(f"Group column '{group}' not found (did you run add_sample_info?).")
@@ -217,7 +262,7 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, max_below_lod: flo
             else:
                 rep.lines.append(f"'{group}': every group is present on every plate")
         if "LOD" in df.columns:
-            by_group = below_lod_by_group(df, group)
+            by_group = _below_lod_by_group(df, group)
             rep.below_lod_by_group = by_group
             big = by_group[by_group["difference"] >= 0.30]
             if len(big):
@@ -256,7 +301,7 @@ def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_warnings: bo
     drop_samples : sample IDs to remove that you found yourself (e.g. an outlier in
         ``plot_sample_qc`` or ``bridge_check``). A list removes every measurement of those
         samples; a dict ``{sample ID: PlateID}`` removes only the measurement on that plate.
-        IDs are compared after ``tidy_sample_ids``.
+        IDs are compared after tidying, as in ``add_sample_info`` ("308 BIS" == "308_bis").
     show_ids : list sample IDs in the report; ``False`` gives counts only (for sharing).
 
     Returns the cleaned table; the list of removals is in ``df.attrs["qc_applied"]``.
@@ -287,15 +332,15 @@ def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_warnings: bo
         df = df[~(ctrl_samples | ctrl_assays)]
 
     if drop_samples is not None:
-        from .reader import tidy_sample_ids
-        tidy = tidy_sample_ids(df["SampleID"])
+        from .reader import _tidy_sample_ids
+        tidy = _tidy_sample_ids(df["SampleID"])
         if isinstance(drop_samples, dict):
-            wanted = {(t, str(p)) for t, p in zip(tidy_sample_ids(pd.Series(list(drop_samples), dtype="string")),
+            wanted = {(t, str(p)) for t, p in zip(_tidy_sample_ids(pd.Series(list(drop_samples), dtype="string")),
                                                   drop_samples.values())}
             plates = df["PlateID"].astype(str) if "PlateID" in df.columns else pd.Series("", index=df.index)
             hit = pd.Series([(t, p) in wanted for t, p in zip(tidy, plates)], index=df.index)
         else:
-            hit = tidy.isin(set(tidy_sample_ids(pd.Series(list(drop_samples), dtype="string"))))
+            hit = tidy.isin(set(_tidy_sample_ids(pd.Series(list(drop_samples), dtype="string"))))
         hit = hit.fillna(False).astype(bool)
         if hit.any():
             drop_measurements(df[hit].drop_duplicates(keys), "chosen by you (drop_samples)")

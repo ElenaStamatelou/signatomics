@@ -75,31 +75,3 @@ To read several plates, read each file and stack them:
 ```python
 npx = pd.concat([so.read_npx("plate1.csv"), so.read_npx("plate2.csv")], ignore_index=True)
 ```
-
----
-
-## `tidy_sample_ids`
-
-Make sample IDs comparable between files.
-
-```python
-tidy_sample_ids(ids: pandas.Series) -> pandas.Series
-```
-
-Removes spaces at the ends, uses capitals, and treats spaces, underscores and hyphens the same.
-Leading zeros are kept.
-
-| In | Out |
-|---|---|
-| `"308 BIS"`, `"308_bis"`, `"308-BIS"` | `"308_BIS"` |
-| `" 058 "` | `"058"` |
-
-**Input.** A pandas Series of IDs of any type; values are turned into text.
-**Output.** A Series of tidy IDs, with the same length and order.
-
-[`add_sample_info`](samples.md#add_sample_info) and the bridging functions use it internally. It
-is also useful on its own, for comparing ID lists.
-
-```python
-so.tidy_sample_ids(pd.Series(["308 BIS", "a-1"]))     # -> "308_BIS", "A_1"
-```

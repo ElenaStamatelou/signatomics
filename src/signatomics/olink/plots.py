@@ -16,8 +16,8 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from .qc import (_control_masks, _measurement_keys, _protein_col, _value_col,
-                 below_lod_by_group, qc_report)
+from .qc import (_below_lod_by_group, _control_masks, _protein_col, _sample_qc_table, _value_col,
+                 qc_report)
 
 # Colour-blind-checked categorical palette (fixed order). In scatter/strip charts only the first
 # three are used together: those three stay distinguishable for every pair.
@@ -107,7 +107,7 @@ def plot_below_lod(npx: pd.DataFrame, *, group: str | None = None,
 
 
 def _plot_below_lod_by_group(npx: pd.DataFrame, group: str, only_with_below: bool) -> go.Figure:
-    t = below_lod_by_group(npx, group)
+    t = _below_lod_by_group(npx, group)
     groups = [c for c in t.columns if c != "difference"]
     colors = _group_colors(groups)
     if only_with_below:
@@ -250,38 +250,14 @@ def plot_group_by_plate(npx: pd.DataFrame, group: str) -> go.Figure:
 # 4. Per-sample check: median vs spread (Olink's standard sample QC plot)
 # ------------------------------------------------------------------------------------------
 
-def sample_qc_table(npx: pd.DataFrame, *, sd: float = 3.0) -> pd.DataFrame:
-    """Per measurement: median and IQR of its values over all proteins, and outlier flags.
-
-    A measurement is an outlier when its median or its IQR is more than ``sd`` standard
-    deviations from the mean of all measurements (per panel). Outliers point to technical
-    problems (dilution, haemolysis, pipetting) rather than biology.
-    """
-    df = _samples_only(npx)
-    value = _value_col(df)
-    keys = _measurement_keys(df)
-    t = (df.groupby(keys, dropna=False)[value]
-         .agg(median="median", iqr=lambda s: s.quantile(0.75) - s.quantile(0.25))
-         .reset_index())
-    by = ["Panel"] if "Panel" in t.columns else []
-    for col in ("median", "iqr"):
-        stats = t.groupby(by)[col] if by else t[col]
-        mean = stats.transform("mean") if by else stats.mean()
-        std = stats.transform("std") if by else stats.std()
-        t[f"{col}_low"], t[f"{col}_high"] = mean - sd * std, mean + sd * std
-    t["outlier"] = ((t["median"] < t["median_low"]) | (t["median"] > t["median_high"]) |
-                    (t["iqr"] < t["iqr_low"]) | (t["iqr"] > t["iqr_high"]))
-    return t
-
-
 def plot_sample_qc(npx: pd.DataFrame, *, sd: float = 3.0, show_ids: bool = False) -> go.Figure:
     """Each sample measurement as a dot: median (x) against spread (IQR, y) over all proteins.
 
     Dashed lines mark ``sd`` standard deviations from the mean; outliers are drawn as large red
     rings. Colour = plate (secondary encoding: marker shape), facets per panel if there are
-    several.
+    several. The numbers behind the chart are in ``qc_report(...).samples``.
     """
-    t = sample_qc_table(npx, sd=sd)
+    t = _sample_qc_table(npx, sd=sd)
     panels = sorted(t["Panel"].dropna().unique(), key=str) if "Panel" in t.columns else [None]
     panels = panels[:4]
     plates = sorted(t["PlateID"].dropna().unique(), key=str) if "PlateID" in t.columns else [None]
@@ -354,11 +330,11 @@ def plot_bridge_shift(npx: pd.DataFrame, *, batch: str = "PlateID", reference=No
     marker is the median (= the shift that ``bridge_plates`` removes) and the bar the middle 50%
     (IQR). Before bridging the markers sit away from 0; after bridging they sit on 0, and what
     remains is the spread - measurement noise that bridging cannot remove.
-    Arguments as in ``bridge_factors``.
+    Arguments as in ``bridge_check``.
     """
-    from .bridge import bridge_differences
+    from .bridge import _bridge_differences
 
-    d = bridge_differences(npx, batch=batch, reference=reference, bridges=bridges,
+    d = _bridge_differences(npx, batch=batch, reference=reference, bridges=bridges,
                            exclude_warnings=exclude_warnings, exclude_below_lod=exclude_below_lod)
     if d.empty:
         raise ValueError("No bridging samples found (no sample on the reference and another plate).")
@@ -511,12 +487,12 @@ def plot_bridge_scatter(npx: pd.DataFrame, proteins, *, batch: str = "PlateID", 
     the cloud lies above or below the diagonal by the plate shift; after bridging it lies on it.
     Dotted lines mark the detection limit (LOD) on each plate. 1 to 12 proteins (Assay names).
     """
-    from .bridge import bridge_differences
+    from .bridge import _bridge_differences
 
     proteins = [proteins] if isinstance(proteins, str) else list(proteins)
     if not 1 <= len(proteins) <= 12:
         raise ValueError("Give 1 to 12 proteins.")
-    d = bridge_differences(npx, batch=batch, reference=reference, exclude_warnings=exclude_warnings)
+    d = _bridge_differences(npx, batch=batch, reference=reference, exclude_warnings=exclude_warnings)
     ref = d.attrs["reference"]
     label = "Assay" if "Assay" in d.columns else _protein_col(d)
     missing = [p for p in proteins if p not in set(d[label])]

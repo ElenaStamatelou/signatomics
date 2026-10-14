@@ -1,4 +1,4 @@
-"""Tests for bridging (bridge_differences, bridge_check, bridge_factors, bridge_plates), the
+"""Tests for bridging (bridge_check with its differences/factors tables, bridge_plates), the
 bridging charts, and apply_qc(drop_samples=...), on made-up data with a known plate shift.
 
 The made-up data: 3 proteins measured on two plates; plate 2 reads every protein higher by a
@@ -11,9 +11,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from signatomics.olink import (apply_qc, bridge_check, bridge_differences, bridge_factors,
-                               bridge_plates, plot_bridge_pca, plot_bridge_scatter,
-                               plot_bridge_shift)
+from signatomics.olink import (apply_qc, bridge_check, bridge_plates, plot_bridge_pca,
+                               plot_bridge_scatter, plot_bridge_shift)
 
 SHIFT = {"P1": 1.0, "P2": -0.5, "P3": 2.0}       # plate 2 minus plate 1
 LOD = {"P1": 1.0, "P2": 0.5, "P3": 2.0}
@@ -54,7 +53,7 @@ def npx():
 
 
 def test_differences_one_row_per_bridge_and_protein(npx):
-    d = bridge_differences(npx)
+    d = bridge_check(npx, verbose=False).differences
     assert d.attrs["reference"] == "plate1"                  # the plate with most samples
     assert d["sample"].nunique() == 11                       # 12 bridges minus the warned one
     assert set(d["plate"]) == {"plate2"}
@@ -63,12 +62,12 @@ def test_differences_one_row_per_bridge_and_protein(npx):
 
 
 def test_warned_bridge_is_used_only_when_asked(npx):
-    with_warned = bridge_differences(npx, exclude_warnings=False)
+    with_warned = bridge_check(npx, exclude_warnings=False, verbose=False).differences
     assert with_warned["sample"].nunique() == 12
 
 
 def test_factors_recover_the_known_shift(npx):
-    f = bridge_factors(npx)
+    f = bridge_check(npx, verbose=False).factors
     got = f.set_index("Assay")["adjustment"].reindex(list(SHIFT))
     assert np.allclose(got, [-v for v in SHIFT.values()], atol=0.1)
     assert (f["bridges"] == 11).all()
@@ -115,14 +114,14 @@ def test_refuses_to_bridge_twice(npx):
 
 
 def test_saved_factors_can_be_applied(npx):
-    f = bridge_factors(npx)
+    f = bridge_check(npx, verbose=False).factors
     a = bridge_plates(npx, factors=f, verbose=False)
     b = bridge_plates(npx, verbose=False)
     assert np.allclose(a["NPX"], b["NPX"])
 
 
 def test_only_chosen_bridges(npx):
-    f = bridge_factors(npx, bridges=["B_02", "B_03", "B_04"])
+    f = bridge_check(npx, bridges=["B_02", "B_03", "B_04"], verbose=False).factors
     assert (f["bridges"] == 3).all() and f["few_bridges"].all()
     report = " ".join(bridge_plates(npx, factors=f, verbose=False).attrs["bridge_report"])
     assert "few bridging pairs" in report
@@ -141,7 +140,7 @@ def test_no_bridges_is_reported_not_crashed():
 def test_three_plates():
     df = make_data(plates=("p1", "p2", "p3"))
     b = bridge_plates(df, reference="p1", verbose=False)
-    f = bridge_factors(df, reference="p1")
+    f = bridge_check(df, reference="p1", verbose=False).factors
     assert set(f["plate"]) == {"p2", "p3"}
     assert bridge_check(b, reference="p1", verbose=False).proteins["shift"].abs().max() < 0.05
 

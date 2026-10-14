@@ -5,10 +5,11 @@ any difference between its two values is technical. Per protein, the **median** 
 all bridging samples is the plate shift; it is added to every sample of the other plate, so that
 plate ends up on the scale of the reference plate. The reference plate is never changed.
 
-Three steps, like the quality steps:
+Two steps, like the quality steps:
 
-- ``bridge_check``   look: how big is the plate difference, per protein? (changes nothing)
-- ``bridge_factors`` compute the shift per protein and plate (a table you can inspect / save)
+- ``bridge_check``   look: how big is the plate difference, per protein? (changes nothing). Its
+                     result holds the tables behind the report, including ``factors``: the
+                     shift per protein and plate, which you can inspect or save.
 - ``bridge_plates``  apply it; the original values are kept next to the bridged ones
 
 Afterwards, run ``bridge_check`` again: the bridging-sample differences should be about 0.
@@ -25,7 +26,7 @@ import numpy as np
 import pandas as pd
 
 from .qc import _control_masks, _ids, _is_warning, _protein_col
-from .reader import tidy_sample_ids
+from .reader import _tidy_sample_ids
 
 ADJUSTED_COLUMNS = ("NPX", "LOD", "MaxLOD")   # shifted together, so "below LOD" stays the same
 
@@ -41,7 +42,7 @@ def _nz(x: float) -> float:
 
 def _sample_key(df: pd.DataFrame) -> pd.Series:
     """Tidy sample ID: the ``sample`` column from ``add_sample_info``, else made from SampleID."""
-    return df["sample"] if "sample" in df.columns else tidy_sample_ids(df["SampleID"])
+    return df["sample"] if "sample" in df.columns else _tidy_sample_ids(df["SampleID"])
 
 
 def _check_input(npx: pd.DataFrame, batch: str) -> None:
@@ -78,22 +79,22 @@ def _bridge_values(npx: pd.DataFrame, batch: str, bridges, exclude_warnings: boo
     if exclude_below_lod and "LOD" in df.columns:
         df = df[df["NPX"] >= df["LOD"]]
     if bridges is not None:
-        df = df[df["_sample"].isin(set(tidy_sample_ids(pd.Series(list(bridges)).astype(str))))]
+        df = df[df["_sample"].isin(set(_tidy_sample_ids(pd.Series(list(bridges)).astype(str))))]
     protein = _protein_col(df)
     label = "Assay" if "Assay" in df.columns else protein
     keys = list(dict.fromkeys(["_sample", protein, label, batch]))
     return df.groupby(keys, dropna=False)["NPX"].mean().reset_index()
 
 
-def bridge_differences(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None,
-                       bridges=None, exclude_warnings: bool = True,
-                       exclude_below_lod: bool = False) -> pd.DataFrame:
+def _bridge_differences(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None,
+                        bridges=None, exclude_warnings: bool = True,
+                        exclude_below_lod: bool = False) -> pd.DataFrame:
     """Per bridging sample and protein: how much higher the other plate reads than the reference.
 
     Returns a long table with one row per bridging sample, protein and non-reference plate:
     ``sample``, the protein columns, ``plate``, ``reference``, ``NPX_reference``, ``NPX_plate``
     and ``difference`` (= plate - reference, in NPX). Repeats on the same plate are averaged.
-    The arguments are the same as for ``bridge_factors``.
+    The arguments are the same as for ``bridge_check``; shown as ``bridge_check(...).differences``.
     """
     _check_input(npx, batch)
     values = _bridge_values(npx, batch, bridges, exclude_warnings, exclude_below_lod)
@@ -128,6 +129,7 @@ class BridgeCheck:
     differences: pd.DataFrame | None = None  # one row per bridging sample, protein and plate
     proteins: pd.DataFrame | None = None     # per protein and plate: shift, spread, bridges
     samples: pd.DataFrame | None = None      # per bridging sample and plate: overall shift
+    factors: pd.DataFrame | None = None      # per plate and protein: the adjustment bridge_plates adds
     by_group: pd.DataFrame | None = None     # per protein: shift in each group (if group given)
 
     def __str__(self) -> str:
@@ -139,7 +141,8 @@ class BridgeCheck:
 
 def bridge_check(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None, group: str | None = None,
                  bridges=None, exclude_warnings: bool = True, exclude_below_lod: bool = False,
-                 tolerance: float = 0.1, show_ids: bool = True, verbose: bool = True) -> BridgeCheck:
+                 min_bridges: int = 8, tolerance: float = 0.1, show_ids: bool = True,
+                 verbose: bool = True) -> BridgeCheck:
     """Look at the difference between plates, using the bridging samples (changes nothing).
 
     Run it before bridging (how big is the plate difference?) and after (is it gone?).
@@ -147,19 +150,30 @@ def bridge_check(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None, g
     Parameters
     ----------
     npx : table from ``read_npx`` (several plates in one table; ``pd.concat`` separate files).
-    batch : the column that tells the plates or projects apart (default ``"PlateID"``).
+    batch : the column that tells the plates or projects apart (default ``"PlateID"``; use e.g.
+        ``"Project"`` when bridging two whole projects whose plate names may overlap).
     reference : the plate the others are compared with; default the plate with most samples.
     group : a sample-information column (e.g. ``"diabetes"``). Checks whether the bridging
         samples represent the groups, and whether the plate shift is the same in every group -
         if not, bridging could add or remove a group difference.
-    bridges, exclude_warnings, exclude_below_lod : which bridging measurements to use; as in
-        ``bridge_factors``.
+    bridges : the sample IDs to use as bridging samples; default every sample measured on the
+        reference and on another plate.
+    exclude_warnings : do not use bridging measurements with a quality warning (default True).
+    exclude_below_lod : use only pairs where both values are above the detection limit
+        (default False: below-LOD values are noisy but not biased, and dropping them leaves few
+        pairs for low proteins).
+    min_bridges : proteins with fewer usable pairs are flagged (``few_bridges`` in ``factors``).
     tolerance : a protein whose median shift is larger than this (in NPX) is counted as
         "still shifted".
     show_ids : list sample IDs in the report; ``False`` gives counts only (for sharing).
+
+    Returns a ``BridgeCheck``: the summary lines, plus the tables ``differences`` (per bridging
+    sample, protein and plate), ``proteins``, ``samples``, ``factors`` (per plate and protein:
+    the ``adjustment`` that ``bridge_plates`` adds, ``bridges`` used, ``spread``,
+    ``few_bridges``) and, with ``group``, ``by_group``.
     """
-    d = bridge_differences(npx, batch=batch, reference=reference, bridges=bridges,
-                           exclude_warnings=exclude_warnings, exclude_below_lod=exclude_below_lod)
+    d = _bridge_differences(npx, batch=batch, reference=reference, bridges=bridges,
+                            exclude_warnings=exclude_warnings, exclude_below_lod=exclude_below_lod)
     ref = d.attrs["reference"]
     protein = _protein_col(d)
     label = "Assay" if "Assay" in d.columns else protein
@@ -178,6 +192,9 @@ def bridge_check(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None, g
     chk.proteins = p
     s = (d.groupby(["plate", "sample"])["difference"].median().rename("shift").reset_index())
     chk.samples = s
+    chk.factors = _bridge_factors(npx, d, batch=batch, min_bridges=min_bridges,
+                                  exclude_warnings=exclude_warnings,
+                                  exclude_below_lod=exclude_below_lod)
 
     for plate, pp in p.groupby("plate", sort=False):
         n_br = d.loc[d["plate"] == plate, "sample"].nunique()
@@ -193,9 +210,9 @@ def bridge_check(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None, g
             f"  noise: the bridge differences of one protein typically spread "
             f"{pp['spread'].median():.2f} NPX (IQR) - measurement noise; bridging removes the "
             f"shift, not this")
-        if n_br < 8:
+        if n_br < min_bridges:
             chk.lines.append(f"  WARNING only {n_br} bridging samples: the shift per protein is "
-                             f"uncertain (8 or more are usually advised)")
+                             f"uncertain ({min_bridges} or more are usually advised)")
         ss = s[s["plate"] == plate]
         med = ss["shift"].median()
         mad = (ss["shift"] - med).abs().median() * 1.4826
@@ -248,39 +265,23 @@ def bridge_check(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None, g
 
 
 # ---------------------------------------------------------------------------------------------
-# Compute and apply: bridge_factors, bridge_plates
+# Compute and apply: _bridge_factors, bridge_plates
 # ---------------------------------------------------------------------------------------------
 
-def bridge_factors(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None, bridges=None,
-                   exclude_warnings: bool = True, exclude_below_lod: bool = False,
-                   min_bridges: int = 8) -> pd.DataFrame:
-    """The shift per protein and plate, from the bridging samples (changes nothing).
+def _bridge_factors(npx: pd.DataFrame, d: pd.DataFrame, *, batch: str, min_bridges: int,
+                    exclude_warnings: bool, exclude_below_lod: bool) -> pd.DataFrame:
+    """The shift per protein and plate, from the bridging-sample differences ``d``.
 
     For every protein and every plate other than the reference:
     ``adjustment = -median(NPX on the plate - NPX on the reference)`` over the bridging samples.
     Adding it to the plate's NPX puts that plate on the reference scale. The median is used (not
     the mean) so that one odd bridging sample cannot pull the shift.
 
-    Parameters
-    ----------
-    npx : table from ``read_npx`` with all plates in one table.
-    batch : the column that tells the plates or projects apart (default ``"PlateID"``; use e.g.
-        ``"Project"`` when bridging two whole projects whose plate names may overlap).
-    reference : the plate whose values stay as they are; default the plate with most samples.
-    bridges : the sample IDs to use as bridging samples; default every sample measured on the
-        reference and on the other plate.
-    exclude_warnings : do not use bridging measurements with a quality warning (default True).
-    exclude_below_lod : use only pairs where both values are above the detection limit
-        (default False: below-LOD values are noisy but not biased, and dropping them leaves few
-        pairs for low proteins).
-    min_bridges : proteins with fewer usable pairs are flagged (``few_bridges``).
-
     Returns one row per plate and protein: ``plate``, ``reference``, protein columns,
     ``adjustment`` (NPX to add), ``bridges`` (pairs used) and ``spread`` (IQR of the
     differences), ``few_bridges``. Proteins without any pair get an empty adjustment.
+    Shown as ``bridge_check(...).factors``.
     """
-    d = bridge_differences(npx, batch=batch, reference=reference, bridges=bridges,
-                           exclude_warnings=exclude_warnings, exclude_below_lod=exclude_below_lod)
     ref = d.attrs["reference"]
     ctrl_samples, ctrl_assays = _control_masks(npx)
     study = npx[~(ctrl_samples | ctrl_assays)]
@@ -312,18 +313,19 @@ def bridge_plates(npx: pd.DataFrame, *, factors: pd.DataFrame | None = None, bat
                   verbose: bool = True) -> pd.DataFrame:
     """Put every plate on the scale of the reference plate, using the bridging samples.
 
-    The adjustment per protein and plate (``bridge_factors``) is added to NPX, and to LOD and
-    MaxLOD as well - so a value that was below the detection limit stays below it. The reference
-    plate is not changed. The original values are kept in ``NPX_unbridged`` (and
-    ``LOD_unbridged``), the adjustment used in ``Bridge_adjustment``.
+    The adjustment per protein and plate (the median shift of the bridging samples, as in
+    ``bridge_check(...).factors``) is added to NPX, and to LOD and MaxLOD as well - so a value
+    that was below the detection limit stays below it. The reference plate is not changed. The
+    original values are kept in ``NPX_unbridged`` (and ``LOD_unbridged``), the adjustment used
+    in ``Bridge_adjustment``.
 
     Parameters
     ----------
     npx : table from ``read_npx`` with all plates in one table (best after ``apply_qc``).
-    factors : a table from ``bridge_factors`` to apply (e.g. checked or saved earlier); if not
-        given, it is computed here with the arguments below.
+    factors : a factors table to apply, e.g. ``bridge_check(...).factors`` checked or saved
+        earlier; if not given, it is computed here with the arguments below.
     batch, reference, bridges, exclude_warnings, exclude_below_lod, min_bridges : as in
-        ``bridge_factors``.
+        ``bridge_check``.
     verbose : print the bridging report.
 
     Returns the bridged table; the report is in ``df.attrs["bridge_report"]``.
@@ -333,13 +335,16 @@ def bridge_plates(npx: pd.DataFrame, *, factors: pd.DataFrame | None = None, bat
                          "Bridge the original table instead, so values are not shifted twice.")
     _check_input(npx, batch)
     if factors is None:
-        factors = bridge_factors(npx, batch=batch, reference=reference, bridges=bridges,
-                                 exclude_warnings=exclude_warnings,
-                                 exclude_below_lod=exclude_below_lod, min_bridges=min_bridges)
+        d = _bridge_differences(npx, batch=batch, reference=reference, bridges=bridges,
+                                exclude_warnings=exclude_warnings,
+                                exclude_below_lod=exclude_below_lod)
+        factors = _bridge_factors(npx, d, batch=batch, min_bridges=min_bridges,
+                                  exclude_warnings=exclude_warnings,
+                                  exclude_below_lod=exclude_below_lod)
     protein = _protein_col(npx)
     if protein not in factors.columns:
-        raise ValueError(f"The factors table has no '{protein}' column; make it with bridge_factors "
-                         f"from data with the same protein columns.")
+        raise ValueError(f"The factors table has no '{protein}' column; make it with bridge_check "
+                         f"on data with the same protein columns.")
     ref = factors["reference"].iloc[0] if len(factors) else reference
     label = "Assay" if "Assay" in factors.columns else protein
 

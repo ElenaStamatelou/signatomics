@@ -45,7 +45,7 @@ lenient = so.apply_qc(data, drop_warnings=False)
 **Save the bridging factors and apply them later**
 
 ```python
-factors = so.bridge_factors(clean)
+factors = so.bridge_check(clean).factors
 factors.to_csv("bridge_factors.csv", index=False)
 bridged = so.bridge_plates(clean, factors=pd.read_csv("bridge_factors.csv"))
 ```

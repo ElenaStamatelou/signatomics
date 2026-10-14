@@ -1,4 +1,4 @@
-"""Tests for signatomics.olink.read_npx and tidy_sample_ids.
+"""Tests for signatomics.olink.read_npx and the sample-ID tidying it relies on.
 
 Each test writes a tiny made-up file with one known quirk (found in real data, see
 analyses/01_PAD000040_first_look.ipynb) and checks that the reader handles it.
@@ -7,7 +7,7 @@ analyses/01_PAD000040_first_look.ipynb) and checks that the reader handles it.
 import pandas as pd
 import pytest
 
-from signatomics.olink import read_npx, tidy_sample_ids
+from signatomics.olink import read_npx
 
 HEADER = "SampleID,Index,OlinkID,Assay,PlateID,QC_Warning,LOD,NPX,MissingFreq,AssayFlag"
 ROWS = [
@@ -110,5 +110,6 @@ def test_missing_file_gives_clear_error(tmp_path):
 
 
 def test_tidy_sample_ids():
+    from signatomics.olink.reader import _tidy_sample_ids   # internal: used wherever IDs are matched
     ids = pd.Series(["308 BIS", " 308_bis", "308-BIS", "058", "a  b"])
-    assert tidy_sample_ids(ids).tolist() == ["308_BIS", "308_BIS", "308_BIS", "058", "A_B"]
+    assert _tidy_sample_ids(ids).tolist() == ["308_BIS", "308_BIS", "308_BIS", "058", "A_B"]

@@ -5,12 +5,11 @@ The function reference lives in the documentation website, one page per step:
 
 | Page | Functions |
 |---|---|
-| [website/docs/reference/index.md](../website/docs/reference/index.md) | overview, rules, the standard table |
-| [reading.md](../website/docs/reference/reading.md) | `read_npx`, `tidy_sample_ids` |
+| [website/docs/reference/index.md](../website/docs/reference/index.md) | overview by step, rules, the standard table |
+| [reading.md](../website/docs/reference/reading.md) | `read_npx` |
 | [samples.md](../website/docs/reference/samples.md) | `add_sample_info` |
-| [quality.md](../website/docs/reference/quality.md) | `qc_report`, `apply_qc`, `below_lod_by_group`, `sample_qc_table` |
-| [bridging.md](../website/docs/reference/bridging.md) | `bridge_check`, `bridge_factors`, `bridge_plates`, `bridge_differences` |
-| [charts.md](../website/docs/reference/charts.md) | all `plot_*` functions |
+| [quality.md](../website/docs/reference/quality.md) | `qc_report`, `apply_qc` and the quality charts |
+| [bridging.md](../website/docs/reference/bridging.md) | `bridge_check`, `bridge_plates` and the bridging charts |
 
 Rule: when a function changes, its docstring and its reference page change in the same step.
 Preview the website locally with `mkdocs serve -f website/mkdocs.yml`.

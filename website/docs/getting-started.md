@@ -36,7 +36,7 @@ Check that it works:
 
 ```python
 import signatomics.olink as so
-print(so.__all__[:3])     # ['read_npx', 'tidy_sample_ids', 'add_sample_info']
+print(so.__all__[:3])     # ['read_npx', 'add_sample_info', 'qc_report']
 ```
 
 ## 2. Get example data

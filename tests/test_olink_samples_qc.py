@@ -124,7 +124,6 @@ def test_apply_qc_protein_threshold_only_when_asked(npx):
 
 
 def test_detectability_difference_between_groups_is_reported():
-    from signatomics.olink import below_lod_by_group
     # protein X: below LOD in every "healthy" sample, above LOD in every "disease" sample
     rows = []
     for k in range(20):
@@ -134,10 +133,11 @@ def test_detectability_difference_between_groups_is_reported():
         rows.append(dict(SampleID=f"S{k}", Index=k, Assay="Y", PlateID="p1", LOD=1.0,
                          NPX=3.0, group=g))
     df = pd.DataFrame(rows)
-    table = below_lod_by_group(df, "group")
+    rep = qc_report(df, group="group", verbose=False)
+    table = rep.below_lod_by_group
     assert table.loc["X", "healthy"] == 1.0 and table.loc["X", "disease"] == 0.0
     assert table.loc["X", "difference"] == 1.0 and table.loc["Y", "difference"] == 0.0
-    text = str(qc_report(df, group="group", verbose=False))
+    text = str(rep)
     assert "detectability differs" in text and "X" in text
 
 

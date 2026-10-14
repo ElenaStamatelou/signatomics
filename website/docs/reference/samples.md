@@ -31,8 +31,10 @@ add_sample_info(npx, samples, *, on, npx_on="SampleID", verbose=True) -> pandas.
 
 - every column of the sample list added. Protein rows without a match are **kept**, with empty
   sample information;
-- a column `sample` with the tidy ID used for matching (see
-  [`tidy_sample_ids`](reading.md#tidy_sample_ids));
+- a column `sample` with the tidy ID used for matching: spaces at the ends removed, capitals,
+  and spaces, underscores and hyphens treated the same, so `"308 BIS"`, `"308_bis"` and
+  `"308-BIS"` all become `"308_BIS"`. Leading zeros are kept (`"058"` stays `"058"`).
+  `apply_qc` and the bridging functions match IDs the same way;
 - the ending `_samplelist` on sample-list columns whose name already exists in the protein data
   (e.g. `PlateID_samplelist`).
 
