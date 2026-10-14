@@ -1,3 +1,8 @@
+---
+title: "Add sample information to Olink data (add_sample_info)"
+description: "Attach clinical data to Olink NPX data in Python and get a report of every sample ID that did not match."
+---
+
 # Sample information
 
 Attach your clinical data (diabetes status, age, sex, …) to the protein data, and see exactly

@@ -1,4 +1,9 @@
-# Reading
+---
+title: "Read Olink NPX files in Python (read_npx)"
+description: "read_npx reads any Olink export (long or wide NPX Manager layout; csv, Excel, parquet) into one standard table, with a reading report."
+---
+
+# Reading Olink files
 
 Turn any Olink export into the [standard table](index.md#the-standard-table).
 { .lede }

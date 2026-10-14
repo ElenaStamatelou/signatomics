@@ -1,5 +1,6 @@
 ---
-title: Home
+title: "Olink proteomics in Python"
+description: "signatomics: open-source Python tools for Olink (PEA) proteomics data. Read NPX files, check quality, bridge plates, with every step reported."
 hide:
   - navigation
   - toc

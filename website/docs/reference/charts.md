@@ -1,3 +1,8 @@
+---
+title: "Olink quality and bridging charts in Python (Plotly)"
+description: "Interactive, colour-blind-safe Plotly charts for Olink data: below-LOD share, NPX strip plots, sample QC, bridging shift and PCA."
+---
+
 # Charts
 
 Interactive Plotly charts for every quality and bridging step. Colour-blind safe, with sample IDs

@@ -1,3 +1,8 @@
+---
+title: "How-to guides for Olink data in Python"
+description: "Short recipes for Olink data in Python: read several plates, hide sample IDs, remove outliers, save and reuse bridging factors."
+---
+
 # How-to guides
 
 Short recipes for one task each. You know what you want to do; here is how.

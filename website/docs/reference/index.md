@@ -1,3 +1,8 @@
+---
+title: "Function reference: Python tools for Olink data"
+description: "Every function of signatomics.olink: reading Olink exports, sample matching, quality control, plate bridging and charts."
+---
+
 # Function reference
 
 <p class="lede">Every public function in <code>signatomics.olink</code>: what it does, what goes

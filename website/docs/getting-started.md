@@ -1,3 +1,8 @@
+---
+title: "Getting started: Olink NPX data in Python"
+description: "Install signatomics and go from two raw Olink plate files to quality-checked, bridged NPX data in about ten lines of Python."
+---
+
 # Getting started
 
 <p class="lede">Install signatomics, download a free public Olink dataset and go from two raw

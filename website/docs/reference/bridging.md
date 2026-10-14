@@ -1,4 +1,9 @@
-# Bridging plates
+---
+title: "Bridging Olink plates in Python"
+description: "Bridge Olink plates and projects in Python: per-protein plate shifts from bridging samples, LOD shifted along, and independent checks."
+---
+
+# Bridging Olink plates
 
 When a study is measured on several plates, or in several projects, the plates read slightly
 differently. **Bridging samples**, the same tube measured on both plates, show by how much.

@@ -1,5 +1,5 @@
 # The package's "ID card": its name, version, description and which other packages it needs.
-# Python's installer (pip) reads this file. Explained in docs/package_anatomy.md.
+# Python's installer (pip) and the Python package index read this file.
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -12,10 +12,25 @@ description = "Python tools for Olink (PEA) proteomics data: read, check, bridge
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Elena Stamatelou" }]
+# Search words on the Python package index; the name is the family, these say what it does today
+keywords = ["olink", "proteomics", "npx", "pea", "proximity extension assay", "olink target 96",
+            "olink explore", "biomarkers", "quality control", "bridging", "batch correction"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "numpy",
     "pandas",
 ]
+
+[project.urls]
+Documentation = "https://signatomics.elenastamatelou.com"
+Source = "https://github.com/ElenaStamatelou/signatomics"
+Issues = "https://github.com/ElenaStamatelou/signatomics/issues"
 
 [project.optional-dependencies]
 # Extensions: installed only when needed, e.g.  pip install signatomics[olink]

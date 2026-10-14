@@ -1,3 +1,8 @@
+---
+title: "Olink quality control in Python: QC report, LOD, outliers"
+description: "Quality control for Olink NPX data in Python: QC warnings, detection limit (LOD), repeats, outliers, with every removal reported."
+---
+
 # Quality
 
 The quality step has two halves: first **look** ([`qc_report`](#qc_report) and the

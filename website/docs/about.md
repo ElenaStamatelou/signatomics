@@ -1,3 +1,8 @@
+---
+title: "About: open-source Python tools for Olink data"
+description: "signatomics is an independent, open-source family of Python tools for biomarker discovery, starting with Olink (PEA) proteomics."
+---
+
 # About
 
 signatomics is a family of open-source Python tools for biomarker discovery from omics data,

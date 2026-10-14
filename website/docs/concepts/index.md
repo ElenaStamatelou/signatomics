@@ -1,3 +1,8 @@
+---
+title: "Olink concepts explained: NPX, LOD and plate bridging"
+description: "NPX and the log2 scale, the detection limit (LOD), plates and bridging, explained without code."
+---
+
 # Concepts
 
 The ideas behind the steps, explained without code and with interactive figures you can play
