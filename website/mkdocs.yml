@@ -4,7 +4,7 @@
 
 site_name: signatomics
 site_url: https://signatomics.elenastamatelou.com/
-site_description: Python tools for Olink (PEA) proteomics data — read, check, bridge and analyse, with every step reported.
+site_description: Python tools for Olink (PEA) proteomics data. Read, check and bridge your data, with every step reported.
 site_author: Elena Stamatelou
 repo_url: https://github.com/ElenaStamatelou/signatomics
 repo_name: signatomics
@@ -13,10 +13,12 @@ copyright: "© 2026 <a href='https://elenastamatelou.com'>Elena Stamatelou</a>"
 
 theme:
   name: material
+  custom_dir: overrides
+  favicon: assets/favicon.svg
   language: en
   font:
-    text: Public Sans
-    code: JetBrains Mono
+    text: IBM Plex Sans
+    code: IBM Plex Mono
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -29,7 +31,7 @@ theme:
       accent: custom
       toggle: { icon: material/weather-sunny, name: Light mode }
   icon:
-    logo: material/flask-outline
+    logo: signatomics/mark
     repo: fontawesome/brands/github
   features:
     - navigation.tabs
@@ -56,6 +58,9 @@ markdown_extensions:
       permalink: "#"
   - pymdownx.details
   - pymdownx.superfences
+  - pymdownx.snippets:          # shared diagrams: --8<-- "bridging.html"
+      base_path: [website/snippets, snippets]
+      check_paths: true
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
@@ -67,10 +72,8 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Getting started: getting-started.md
-  - Tutorials: tutorials/index.md
-  - How-to guides: how-to/index.md
-  - Concepts: concepts/index.md
+  - Get started: getting-started.md
+  - Recipes: how-to/index.md
   - Reference:
       - reference/index.md
       - Reading: reference/reading.md

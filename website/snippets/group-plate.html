@@ -1,0 +1,33 @@
+<figure class="sg-fig">
+<div class="sg-fig-scroll">
+<svg viewBox="0 0 790 200" role="img" aria-label="Plate 1 holds people without diabetes and with type 2 diabetes; plate 2, which reads higher, holds all three groups, and the prediabetes group is missing from plate 1. The prediabetes group therefore carries the plate difference and looks higher without any biological reason.">
+  <text class="d-k" x="30" y="62">plate 1</text>
+  <rect class="d-box" x="30" y="72" width="270" height="108" rx="6"/>
+  <text class="d-t" x="46" y="102">no diabetes</text>
+  <circle class="d-dot" cx="160" cy="98" r="5"/><circle class="d-dot" cx="176" cy="98" r="5"/><circle class="d-dot" cx="192" cy="98" r="5"/><circle class="d-dot" cx="208" cy="98" r="5"/><circle class="d-dot" cx="224" cy="98" r="5"/><circle class="d-dot" cx="240" cy="98" r="5"/>
+  <text class="d-t" x="46" y="132">type 2 diabetes</text>
+  <circle class="d-dot" cx="160" cy="128" r="5"/><circle class="d-dot" cx="176" cy="128" r="5"/><circle class="d-dot" cx="192" cy="128" r="5"/><circle class="d-dot" cx="208" cy="128" r="5"/><circle class="d-dot" cx="224" cy="128" r="5"/>
+  <text class="d-t" x="46" y="162">prediabetes</text>
+  <text class="d-t" x="160" y="162">none</text>
+
+  <text class="d-k" x="330" y="24">plate 2 <tspan class="d-t">· reads higher</tspan></text>
+  <rect class="d-box" x="330" y="34" width="270" height="108" rx="6"/>
+  <text class="d-t" x="346" y="64">no diabetes</text>
+  <circle class="d-dot" cx="460" cy="60" r="5"/><circle class="d-dot" cx="476" cy="60" r="5"/><circle class="d-dot" cx="492" cy="60" r="5"/>
+  <text class="d-t" x="346" y="94">type 2 diabetes</text>
+  <circle class="d-dot" cx="460" cy="90" r="5"/><circle class="d-dot" cx="476" cy="90" r="5"/><circle class="d-dot" cx="492" cy="90" r="5"/>
+  <text class="d-k" x="346" y="124">prediabetes</text>
+  <circle class="d-node" cx="460" cy="120" r="5"/><circle class="d-node" cx="476" cy="120" r="5"/><circle class="d-node" cx="492" cy="120" r="5"/><circle class="d-node" cx="508" cy="120" r="5"/><circle class="d-node" cx="524" cy="120" r="5"/>
+
+  <path class="d-line" d="M540 120 H612"/><path class="d-head" d="M612 115 L621 120 L612 125 Z"/>
+  <text class="d-t" x="630" y="102">missing from</text>
+  <text class="d-t" x="630" y="120">plate 1, so it</text>
+  <text class="d-t" x="630" y="138">looks higher with</text>
+  <text class="d-t" x="630" y="156">no biology behind it</text>
+</svg>
+</div>
+<figcaption>Simplified from the example data, where people with prediabetes were measured on plate 2 or on
+both plates, never on plate 1 alone. Plate 2 is drawn higher because it reads higher.
+Bridge the plates before comparing groups, and check that the shift is the same in every group
+(<code>bridge_check(..., group=...)</code>).</figcaption>
+</figure>

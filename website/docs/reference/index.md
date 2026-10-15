@@ -11,7 +11,7 @@ in, what comes out, the errors it can raise, and an example on real data.</p>
 <p class="small">Version 0.0.1 · updated 14 Oct 2026</p>
 
 ```python
-import signatomics.olink as so      # every function below is available as so.<function>
+import signatomics.olink as so      # every function below: so.<function>
 ```
 
 ## Functions by step
@@ -19,6 +19,8 @@ import signatomics.olink as so      # every function below is available as so.<f
 Each step has one function that **looks** (changes nothing) and, where data changes, one that
 **acts**. The tables a look function finds are inside its result, so there are no extra
 helper functions to learn. Charts sit with the step whose result they show.
+
+--8<-- "look-act.html"
 
 | Step | Look | Act | Charts |
 |---|---|---|---|

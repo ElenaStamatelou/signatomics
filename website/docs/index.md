@@ -1,134 +1,78 @@
 ---
-title: "Olink proteomics in Python"
-description: "signatomics: open-source Python tools for Olink (PEA) proteomics data. Read NPX files, check quality, bridge plates, with every step reported."
+title: "signatomics: Olink proteomics in Python"
+description: "signatomics: open-source Python tools for Olink (PEA) proteomics data. Read NPX files, check quality and bridge plates, with every step reported."
 hide:
   - navigation
   - toc
 ---
 
-<div class="sg-hero" markdown>
+# signatomics { .sg-title }
 
-<p class="eyebrow">Python tools for Olink (PEA) proteomics · in development</p>
+Python tools for Olink (PEA) proteomics data. Read your exports, check their quality and line up
+the plates, with every step reported. Finding a biomarker signature comes next.
+{ .lede }
 
-<h1>signatomics</h1>
+**For** researchers who analyse Olink data in Python, especially in biomarker and
+machine-learning studies, and in studies measured on several plates or projects.
+{ .sg-for }
 
-<p class="lede">Read, check and bridge your Olink data in Python, with every step explained.
-signatomics reads your exports, checks their quality, lines up the plates and reports
-everything it does. Nothing is changed silently.</p>
+<div class="sg-map">
+<svg viewBox="0 0 1000 250" role="group" aria-label="The signatomics functions as a graph. Available: read_npx, add_sample_info, qc_report, apply_qc, bridge_check, bridge_plates. Planned: one row per person, compare groups, find a signature, check the signature, adjust for confounders; later: other data types.">
+  <text class="group" x="40" y="20">AVAILABLE · signatomics.olink</text>
+  <text class="group" x="590" y="20">PLANNED</text>
 
-[Get started](getting-started.md){ .md-button .md-button--primary }
-[Function reference](reference/index.md){ .md-button }
+  <path class="e" d="M60 130 H195"/>
+  <path class="e" d="M195 130 C265 130 265 70 335 70"/>
+  <path class="e" d="M195 130 H335"/>
+  <path class="e look" d="M335 70 V130"/>
+  <path class="e" d="M335 130 C405 130 405 70 475 70"/>
+  <path class="e" d="M335 130 H475"/>
+  <path class="e look" d="M475 70 V130"/>
+  <path class="e plan" d="M475 130 H615"/>
+  <path class="e plan" d="M615 205 V130"/>
+  <path class="e plan" d="M615 130 C690 130 690 70 765 70"/>
+  <path class="e plan" d="M615 130 H765"/>
+  <path class="e plan" d="M765 130 C840 130 840 70 915 70"/>
+  <path class="e plan" d="M765 130 H915"/>
 
-</div>
+  <a href="reference/reading/#read_npx"><g class="n done"><title>read_npx: read an Olink export</title><circle cx="60" cy="130" r="7"/><text x="60" y="156" text-anchor="middle">read_npx</text></g></a>
+  <a href="reference/samples/#add_sample_info"><g class="n done"><title>add_sample_info: attach your sample list</title><circle cx="195" cy="130" r="7"/><text x="195" y="156" text-anchor="middle">add_sample_info</text></g></a>
+  <a href="reference/quality/#qc_report"><g class="n done"><title>qc_report: look at quality (changes nothing)</title><circle cx="335" cy="70" r="7"/><text x="335" y="52" text-anchor="middle">qc_report</text></g></a>
+  <a href="reference/quality/#apply_qc"><g class="n done"><title>apply_qc: remove low-quality data</title><circle cx="335" cy="130" r="7"/><text x="335" y="156" text-anchor="middle">apply_qc</text></g></a>
+  <a href="reference/bridging/#bridge_check"><g class="n done"><title>bridge_check: look at the plate difference (changes nothing)</title><circle cx="475" cy="70" r="7"/><text x="475" y="52" text-anchor="middle">bridge_check</text></g></a>
+  <a href="reference/bridging/#bridge_plates"><g class="n done"><title>bridge_plates: put every plate on one scale</title><circle cx="475" cy="130" r="7"/><text x="475" y="156" text-anchor="middle">bridge_plates</text></g></a>
 
-<div class="sg-flow" role="img" aria-label="The signatomics workflow: read, match, check quality and bridge plates are ready; compare groups and find a signature are coming next.">
-<svg viewBox="0 0 900 132" xmlns="http://www.w3.org/2000/svg">
-  <line class="line done" x1="75" y1="40" x2="525" y2="40"/>
-  <line class="line" x1="525" y1="40" x2="825" y2="40"/>
-  <g class="done">
-    <circle cx="75" cy="40" r="17"/><path class="tick" d="M67 40 l6 6 l10 -12" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <text class="num" x="75" y="12" text-anchor="middle">1</text>
-    <text class="lbl" x="75" y="82" text-anchor="middle">Read</text>
-    <text class="fn" x="75" y="100" text-anchor="middle">read_npx</text>
-  </g>
-  <g class="done">
-    <circle cx="225" cy="40" r="17"/><path class="tick" d="M217 40 l6 6 l10 -12" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <text class="num" x="225" y="12" text-anchor="middle">2</text>
-    <text class="lbl" x="225" y="82" text-anchor="middle">Match samples</text>
-    <text class="fn" x="225" y="100" text-anchor="middle">add_sample_info</text>
-  </g>
-  <g class="done">
-    <circle cx="375" cy="40" r="17"/><path class="tick" d="M367 40 l6 6 l10 -12" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <text class="num" x="375" y="12" text-anchor="middle">3</text>
-    <text class="lbl" x="375" y="82" text-anchor="middle">Check quality</text>
-    <text class="fn" x="375" y="100" text-anchor="middle">qc_report · apply_qc</text>
-  </g>
-  <g class="done">
-    <circle cx="525" cy="40" r="17"/><path class="tick" d="M517 40 l6 6 l10 -12" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <text class="num" x="525" y="12" text-anchor="middle">4</text>
-    <text class="lbl" x="525" y="82" text-anchor="middle">Bridge plates</text>
-    <text class="fn" x="525" y="100" text-anchor="middle">bridge_plates</text>
-  </g>
-  <g class="todo">
-    <circle cx="675" cy="40" r="17"/>
-    <text class="num" x="675" y="12" text-anchor="middle">5</text>
-    <text class="lbl" x="675" y="82" text-anchor="middle">Compare groups</text>
-    <text class="fn" x="675" y="100" text-anchor="middle">coming next</text>
-  </g>
-  <g class="todo">
-    <circle cx="825" cy="40" r="17"/>
-    <text class="num" x="825" y="12" text-anchor="middle">6</text>
-    <text class="lbl" x="825" y="82" text-anchor="middle">Biomarker signature</text>
-    <text class="fn" x="825" y="100" text-anchor="middle">coming</text>
-  </g>
+  <g class="n plan"><title>Planned: one row per person, one column per protein</title><circle cx="615" cy="130" r="7"/><text x="615" y="112" text-anchor="middle">one row per person</text></g>
+  <g class="n later"><title>Later: ELISA and microbiome data, ending in the same table</title><circle cx="615" cy="205" r="7"/><text x="615" y="231" text-anchor="middle">other data types (later)</text></g>
+  <g class="n plan"><title>Planned: per protein, do the groups differ?</title><circle cx="765" cy="70" r="7"/><text x="765" y="52" text-anchor="middle">compare groups</text></g>
+  <g class="n plan"><title>Planned: a small set of proteins that predicts the outcome, by nested cross-validation</title><circle cx="765" cy="130" r="7"/><text x="765" y="156" text-anchor="middle">find a signature</text></g>
+  <g class="n plan"><title>Planned: adjust protein–outcome associations for age, sex and other confounders</title><circle cx="915" cy="70" r="7"/><text x="915" y="52" text-anchor="middle">adjust for confounders</text></g>
+  <g class="n plan"><title>Planned: what each protein adds, and how stable the signature is</title><circle cx="915" cy="130" r="7"/><text x="915" y="156" text-anchor="middle">check the signature</text></g>
 </svg>
 </div>
-<p class="sg-flow-caption">Filled circles are steps you can use today; dashed circles are the next ones.</p>
+<p class="sg-legend"><span><i class="dot done"></i>available: click for its reference</span><span><i class="dot"></i>planned</span><span>dotted line: a check that informs the next step</span></p>
 
-## Why signatomics
-
-<div class="grid cards" markdown>
-
--   :material-file-table-outline:{ .lg } __Reads what Olink gives you__
-
-    ---
-
-    Current long exports and older wide (NPX Manager) files. Reads csv, Excel and parquet, and
-    copes with European decimal commas, "No Data" cells and Italian or Dutch TRUE/FALSE words.
-
--   :material-eye-check-outline:{ .lg } __Look first, then decide__
-
-    ---
-
-    "Look" functions never change your data. "Do" functions return a new table and print what
-    they removed or changed. A sensitivity check takes one argument.
-
--   :material-swap-horizontal:{ .lg } __Plates that agree__
-
-    ---
-
-    Bridging per protein, with detection limits shifted together with NPX. An independent PCA
-    check tells you whether it worked.
-
--   :material-shield-lock-outline:{ .lg } __Safe to share__
-
-    ---
-
-    Every report and chart can hide sample IDs (`show_ids=False`), so you can send results to a
-    colleague without sending identities.
-
-</div>
-
-## The whole route in a few lines
+## In a few lines
 
 ```python
 import pandas as pd
 import signatomics.olink as so
 
-npx   = pd.concat([so.read_npx("plate1.csv"), so.read_npx("plate2.csv")], ignore_index=True)
+files = ["plate1.csv", "plate2.csv"]
+npx   = pd.concat([so.read_npx(f) for f in files], ignore_index=True)
 data  = so.add_sample_info(npx, "samples.xlsx", on="Sample ID")
 so.qc_report(data, group="diabetes")            # look
-clean = so.apply_qc(data)                       # decide
-so.bridge_check(clean, group="diabetes")        # look at the plate difference
-bridged = so.bridge_plates(clean)               # line up the plates
+clean = so.apply_qc(data)                       # act
+so.bridge_check(clean, group="diabetes")        # look
+bridged = so.bridge_plates(clean)               # act
 so.plot_bridge_pca(clean, bridged)              # check that it worked
 ```
 
-[Walk through this on real public data →](getting-started.md)
+Every step prints what it found or changed. Checks never change your data; sample IDs can be
+hidden in every report (`show_ids=False`).
 
-## One family, Olink first
+[Get started](getting-started.md) · [Reference](reference/index.md) · [GitHub](https://github.com/ElenaStamatelou/signatomics)
+{ .sg-links }
 
-signatomics is a family of tools for finding **biomarker signatures in omics data**. The first
-module, `signatomics.olink`, is for **Olink (PEA) proteomics**: Target 96/48, Explore, Explore HT
-and Reveal exports. Later modules will build on it:
-
-| Module | Data | Status |
-|---|---|---|
-| `signatomics.olink` | Olink (PEA) proteomics | in development |
-| core | one standard table, combining data types, a small and honest biomarker signature (nested cross-validation) | planned |
-| more modules | e.g. ELISA, microbiome | ideas |
-
-See the [roadmap](about.md#roadmap).
-
-<p class="small">signatomics is an independent project, not affiliated with or endorsed by Olink
-or Thermo Fisher Scientific. Olink is a trademark of Thermo Fisher Scientific.</p>
+<p class="small">Version 0.0.1, in development. An independent project, not affiliated with or
+endorsed by Olink or Thermo Fisher Scientific. Olink is a trademark of Thermo Fisher Scientific.</p>

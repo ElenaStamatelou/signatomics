@@ -1,0 +1,37 @@
+<figure class="sg-fig">
+<div class="sg-fig-scroll">
+<svg viewBox="0 0 760 250" role="img" aria-label="Bridging for one protein. Bridging samples are measured on plate 1 (the reference) and on plate 2; plate 2 reads higher. The shift is the median of their differences. bridge_plates subtracts it from every value on plate 2, and from plate 2's detection limit, so plate 2 ends up on the scale of plate 1.">
+  <path class="d-line" d="M44 214 V44"/><path class="d-head" d="M39 46 L44 36 L49 46 Z"/>
+  <text class="d-t" x="54" y="44">NPX</text>
+
+  <text class="d-t" x="265" y="20" text-anchor="middle">each line: one bridging sample, measured on both plates</text>
+  <text class="d-k" x="265" y="38" text-anchor="middle">shift = the median of their differences</text>
+
+  <path class="d-line acc" d="M170 170 L360 122 M170 140 L360 97 M170 115 L360 68 M170 90 L360 47"/>
+
+  <path class="d-lod" d="M148 200 H192"/><text class="d-t" x="198" y="204">LOD</text>
+  <circle class="d-dot" cx="170" cy="190" r="5"/><circle class="d-dot" cx="170" cy="62" r="5"/>
+  <circle class="d-node" cx="170" cy="170" r="5"/><circle class="d-node" cx="170" cy="140" r="5"/><circle class="d-node" cx="170" cy="115" r="5"/><circle class="d-node" cx="170" cy="90" r="5"/>
+  <text class="d-k" x="170" y="238" text-anchor="middle">plate 1 (reference)</text>
+
+  <path class="d-lod" d="M338 155 H382"/><text class="d-t" x="388" y="159">LOD</text>
+  <circle class="d-dot" cx="360" cy="135" r="5"/><circle class="d-dot" cx="360" cy="80" r="5"/><circle class="d-dot" cx="360" cy="160" r="5"/>
+  <circle class="d-node" cx="360" cy="122" r="5"/><circle class="d-node" cx="360" cy="97" r="5"/><circle class="d-node" cx="360" cy="68" r="5"/><circle class="d-node" cx="360" cy="47" r="5"/>
+  <text class="d-k" x="360" y="238" text-anchor="middle">plate 2</text>
+
+  <path class="d-line" d="M420 128 H552"/><path class="d-head" d="M552 123 L561 128 L552 133 Z"/>
+  <text class="d-m" x="488" y="116" text-anchor="middle">bridge_plates</text>
+  <text class="d-t" x="488" y="150" text-anchor="middle">subtract the shift,</text>
+  <text class="d-t" x="488" y="167" text-anchor="middle">from NPX and LOD</text>
+
+  <path class="d-lod" d="M578 200 H622"/><text class="d-t" x="628" y="204">LOD</text>
+  <circle class="d-dot" cx="600" cy="180" r="5"/><circle class="d-dot" cx="600" cy="125" r="5"/><circle class="d-dot" cx="600" cy="205" r="5"/>
+  <circle class="d-node" cx="600" cy="167" r="5"/><circle class="d-node" cx="600" cy="142" r="5"/><circle class="d-node" cx="600" cy="113" r="5"/><circle class="d-node" cx="600" cy="92" r="5"/>
+  <text class="d-k" x="600" y="238" text-anchor="middle">plate 2, bridged</text>
+</svg>
+</div>
+<figcaption>One protein. Coloured dots are bridging samples, grey dots are the other samples. The
+shift is computed per protein, and the median keeps one broken tube from pulling it. The detection
+limit moves with the values, so "below LOD" means the same before and after. The reference plate is
+never changed.</figcaption>
+</figure>

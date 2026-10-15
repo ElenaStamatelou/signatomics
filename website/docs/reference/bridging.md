@@ -16,6 +16,8 @@ plate**. The reference plate itself is not changed.
 NPX is on a log2 scale, so bridging is an *addition*: a difference of 1 NPX is a factor 2. Only
 NPX data can be bridged. Skip this step when all samples are on one plate.
 
+--8<-- "bridging.html"
+
 Like the quality step, bridging has two halves: **look** ([`bridge_check`](#bridge_check) and the
 [charts](#charts-for-this-step)), then **act** ([`bridge_plates`](#bridge_plates)).
 
@@ -47,8 +49,8 @@ before bridging (how big is the difference?) and after (is it gone?).
 
 ```python
 bridge_check(npx, *, batch="PlateID", reference=None, group=None, bridges=None,
-             exclude_warnings=True, exclude_below_lod=False, min_bridges=8, tolerance=0.1,
-             show_ids=True, verbose=True) -> BridgeCheck
+             exclude_warnings=True, exclude_below_lod=False, min_bridges=8,
+             tolerance=0.1, show_ids=True, verbose=True) -> BridgeCheck
 ```
 
 **Inputs.** The [shared arguments](#shared-arguments), plus:
@@ -92,6 +94,7 @@ You can inspect it, save it (`.to_csv`) and apply it later with
 `bridge_plates(..., factors=...)`.
 
 For each plate, the report says:
+
 - how many bridging samples there are;
 - the typical shift and its range over proteins;
 - how many proteins are shifted by more than `tolerance`;
@@ -140,8 +143,8 @@ Put every plate on the scale of the reference plate.
 
 ```python
 bridge_plates(npx, *, factors=None, batch="PlateID", reference=None, bridges=None,
-              exclude_warnings=True, exclude_below_lod=False, min_bridges=8, verbose=True)
-    -> pandas.DataFrame
+              exclude_warnings=True, exclude_below_lod=False, min_bridges=8,
+              verbose=True) -> pandas.DataFrame
 ```
 
 **Inputs.** The [shared arguments](#shared-arguments), plus:
@@ -195,6 +198,7 @@ Every chart returns a Plotly figure; see
 ### `plot_bridge_shift`
 
 For each protein, how much higher the other plate reads than the reference, for the same samples:
+
 - grey dots: single bridging samples;
 - coloured marker: the median, which is the shift `bridge_plates` removes;
 - bar: the middle 50%.
@@ -202,13 +206,19 @@ For each protein, how much higher the other plate reads than the reference, for 
 Before bridging the markers sit away from 0; after bridging they sit on 0.
 
 ```python
-plot_bridge_shift(npx, *, batch="PlateID", reference=None, bridges=None, exclude_warnings=True,
-                  exclude_below_lod=False, show_ids=False) -> Figure
+plot_bridge_shift(npx, *, batch="PlateID", reference=None, bridges=None,
+                  exclude_warnings=True, exclude_below_lod=False,
+                  show_ids=False) -> Figure
 ```
 
 Arguments as in the [shared arguments](#shared-arguments). At most 3 plates besides the reference.
 
 **Errors.** `ValueError` when there are no bridging samples, or more than 3 other plates.
+
+<figure class="sg-chart" markdown>
+![Per protein: the bridging-sample differences between plate 2 and the reference, with their median and middle 50%](../assets/figures/bridge_shift.svg){ loading=lazy }
+<figcaption markdown>`plot_bridge_shift(clean)` on PAD000040, before bridging; 24 of the 92 proteins, spread over the range of shifts.</figcaption>
+</figure>
 
 ### `plot_bridge_scatter`
 
@@ -216,8 +226,8 @@ Bridging samples, with NPX on the reference plate (x) against the other plate (y
 protein. On the dashed diagonal both plates agree; dotted lines mark each plate's LOD.
 
 ```python
-plot_bridge_scatter(npx, proteins, *, batch="PlateID", reference=None, exclude_warnings=True,
-                    show_ids=False, cols=3) -> Figure
+plot_bridge_scatter(npx, proteins, *, batch="PlateID", reference=None,
+                    exclude_warnings=True, show_ids=False, cols=3) -> Figure
 ```
 
 | Argument | Default | Meaning |
@@ -226,6 +236,11 @@ plot_bridge_scatter(npx, proteins, *, batch="PlateID", reference=None, exclude_w
 | `cols` | `3` | panels per row |
 
 **Errors.** `ValueError` for 0 or more than 12 proteins, or a protein without bridging pairs.
+
+<figure class="sg-chart" markdown>
+![Three panels: bridging samples, NPX on the reference plate against plate 2, for DNER, TNFRSF9 and ST1A1](../assets/figures/bridge_scatter.svg){ loading=lazy }
+<figcaption markdown>`plot_bridge_scatter(clean, ["DNER", "TNFRSF9", "ST1A1"])` on PAD000040: plate 2 reads DNER higher, TNFRSF9 the same, ST1A1 lower. The dot at the bottom of each panel is sample 249, a broken tube.</figcaption>
+</figure>
 
 ### `plot_bridge_pca`
 
@@ -253,6 +268,7 @@ filled with the protein's median, and proteins are scaled before the PCA.
 
 **Errors.** `ValueError` with fewer than 3 measurements, or an unknown `samples` value.
 
-!!! example "On PAD000040"
-    Before bridging, a sample's two measurements lie **6.5** apart (median). After bridging they
-    lie **1.8** apart.
+<figure class="sg-chart" markdown>
+![Two PCA panels of the bridging samples coloured by plate, before and after bridging](../assets/figures/bridge_pca.svg){ loading=lazy }
+<figcaption markdown>`plot_bridge_pca(clean, bridged)` on PAD000040: a sample's two measurements lie 6.5 apart before bridging (median) and 1.8 after. The point far from the rest is sample 249, the broken tube.</figcaption>
+</figure>

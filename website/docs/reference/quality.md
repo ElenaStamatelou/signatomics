@@ -14,11 +14,12 @@ The quality step has two halves: first **look** ([`qc_report`](#qc_report) and t
 Look at data quality without changing anything.
 
 ```python
-qc_report(npx, *, group=None, max_below_lod=0.5, outlier_sd=3.0, show_ids=True, verbose=True)
-    -> QCReport
+qc_report(npx, *, group=None, max_below_lod=0.5, outlier_sd=3.0, show_ids=True,
+          verbose=True) -> QCReport
 ```
 
 It checks:
+
 - control samples and control assays;
 - rows without a sample ID;
 - quality warnings;
@@ -65,6 +66,10 @@ notebook. The tables behind the report are its attributes:
   error), not to biology. If you decide to remove one, do it with `apply_qc(drop_samples=...)`
   so that the removal is reported.
 
+Why a group mixed up with a plate matters:
+
+--8<-- "group-plate.html"
+
 Samples without sample information (no match in the sample list) are not counted as a group.
 
 **Errors.** `KeyError` when `group` is not a column (did you run `add_sample_info`?).
@@ -100,9 +105,9 @@ Remove low-quality data. Every choice is a visible argument with a sensible defa
 removal is reported.
 
 ```python
-apply_qc(npx, *, drop_controls=True, drop_warnings=True, drop_empty=True, max_below_lod=None,
-         repeats="prefer_pass_then_last", drop_samples=None, show_ids=True, verbose=True)
-    -> pandas.DataFrame
+apply_qc(npx, *, drop_controls=True, drop_warnings=True, drop_empty=True,
+         max_below_lod=None, repeats="prefer_pass_then_last", drop_samples=None,
+         show_ids=True, verbose=True) -> pandas.DataFrame
 ```
 
 **Inputs**
@@ -161,7 +166,8 @@ a static file, `fig.write_html("chart.html")` for a file you can share. See
 Horizontal bars showing the % of measurements below the detection limit, per protein.
 
 ```python
-plot_below_lod(npx, *, group=None, max_below_lod=None, only_with_below=True) -> Figure
+plot_below_lod(npx, *, group=None, max_below_lod=None,
+               only_with_below=True) -> Figure
 ```
 
 | Argument | Default | Meaning |
@@ -173,14 +179,19 @@ plot_below_lod(npx, *, group=None, max_below_lod=None, only_with_below=True) -> 
 
 **Errors.** `ValueError` without a `LOD` column, or with more than 3 groups.
 
+<figure class="sg-chart" markdown>
+![Grouped horizontal bars: share below the detection limit per protein for each diabetes group](../assets/figures/below_lod_by_group.svg){ loading=lazy }
+<figcaption markdown>`plot_below_lod(data, group="diabetes")` on PAD000040. The proteins at the top are detectable in one group much more often than in another.</figcaption>
+</figure>
+
 ### `plot_npx_strip`
 
 Every measurement as a dot, per protein, with groups side by side and the LOD as a dark dash.
 Values below LOD are drawn **hollow**.
 
 ```python
-plot_npx_strip(npx, *, group=None, proteins=None, per_row=30, order="name", show_ids=False, seed=0)
-    -> Figure
+plot_npx_strip(npx, *, group=None, proteins=None, per_row=30, order="name",
+               show_ids=False, seed=0) -> Figure
 ```
 
 | Argument | Default | Meaning |
@@ -194,6 +205,11 @@ plot_npx_strip(npx, *, group=None, proteins=None, per_row=30, order="name", show
 
 **Errors.** `ValueError` when no protein is left to plot, or with more than 3 groups.
 
+<figure class="sg-chart" markdown>
+![Strip plot: NPX per protein for six proteins, coloured by diabetes group, with the detection limit as a dash](../assets/figures/npx_strip.svg){ loading=lazy }
+<figcaption markdown>`plot_npx_strip(bridged, group="diabetes", proteins=[...])`: the six proteins whose detectability differs most between the groups. Hollow dots are below the detection limit (the dash).</figcaption>
+</figure>
+
 ### `plot_group_by_plate`
 
 Stacked bars showing how many people of each group were measured on each plate. If a group is
@@ -205,6 +221,11 @@ plot_group_by_plate(npx, group) -> Figure
 
 **Input.** `group`: a sample-information column. Uses
 [`qc_report(...).group_by_plate`](#qc_report).
+
+<figure class="sg-chart" markdown>
+![Stacked bars: how many people of each diabetes group were measured on plate 1, plate 2 or both](../assets/figures/group_by_plate.svg){ loading=lazy }
+<figcaption markdown>`plot_group_by_plate(data, "diabetes")` on PAD000040: nobody with prediabetes was measured on plate 1 alone.</figcaption>
+</figure>
 
 ### `plot_sample_qc`
 
@@ -218,3 +239,8 @@ plot_sample_qc(npx, *, sd=3.0, show_ids=False) -> Figure
 ```
 
 The numbers behind it: [`qc_report(...).samples`](#qc_report).
+
+<figure class="sg-chart" markdown>
+![Scatter of each measurement's median against its spread over all proteins, with one outlier ringed in red](../assets/figures/sample_qc.svg){ loading=lazy }
+<figcaption markdown>`plot_sample_qc(data)` on PAD000040: the red ring is sample 249 on plate 2, about 5 NPX too low on almost every protein.</figcaption>
+</figure>

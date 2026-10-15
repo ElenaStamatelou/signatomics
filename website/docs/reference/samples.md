@@ -14,7 +14,8 @@ what did not match.
 Add the columns of a sample list to the protein data, and report what did not match.
 
 ```python
-add_sample_info(npx, samples, *, on, npx_on="SampleID", verbose=True) -> pandas.DataFrame
+add_sample_info(npx, samples, *, on, npx_on="SampleID",
+                verbose=True) -> pandas.DataFrame
 ```
 
 **Inputs**
@@ -39,6 +40,7 @@ add_sample_info(npx, samples, *, on, npx_on="SampleID", verbose=True) -> pandas.
   (e.g. `PlateID_samplelist`).
 
 The matching report is stored in `df.attrs["sample_report"]`. It lists:
+
 - how many samples matched, and how many only after tidying the IDs;
 - which IDs are only in the protein data (marked WARNING);
 - which IDs are only in the sample list.

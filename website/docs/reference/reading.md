@@ -8,6 +8,8 @@ description: "read_npx reads any Olink export (long or wide NPX Manager layout; 
 Turn any Olink export into the [standard table](index.md#the-standard-table).
 { .lede }
 
+--8<-- "standard-table.html"
+
 ## `read_npx`
 
 Read an Olink export into the standard table.
@@ -73,5 +75,6 @@ Reading report
 To read several plates, read each file and stack them:
 
 ```python
-npx = pd.concat([so.read_npx("plate1.csv"), so.read_npx("plate2.csv")], ignore_index=True)
+npx = pd.concat([so.read_npx("plate1.csv"), so.read_npx("plate2.csv")],
+                ignore_index=True)
 ```
