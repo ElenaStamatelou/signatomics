@@ -142,5 +142,7 @@ assay stays, and so does the outlier P07: those are your decisions.
     makes those changes, with every choice an argument you can see and every removal listed in
     its report.
 
+Every option: [`qc_report`, `apply_qc` and the charts](../functions/quality.md) in Functions.
+
 <div class="sg-lessonnav"><a href="../data-import/">&larr; Data import</a><a href="../bridging/">Bridging &rarr;</a></div>
 

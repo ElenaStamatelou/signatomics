@@ -1,14 +1,16 @@
 ---
-title: "Function reference: Python tools for Olink data"
+title: "Functions: every signatomics function for Olink data"
 description: "Every function of signatomics.olink: reading NPX files, adding sample metadata, quality control, plate bridging, charts, and the one-call route."
 hide:
   - toc
 ---
 
-# Reference
+<p class="eyebrow">Functions</p>
 
-Every function, for looking things up. New here? Begin with [Start](../start.md) or the
-[guides](../guides/index.md).
+# Functions
+
+Every function with all its arguments, its output and its errors: look things up while you
+work. To learn what each step does and what its output means, see [Learn](../learn/index.md).
 { .lede }
 
 ```python
@@ -40,7 +42,7 @@ import signatomics.olink as so      # every function below: so.<function>
     - **Charts** return a Plotly figure: interactive in a notebook, `fig.write_image("chart.png")` for
       a static file, `fig.write_html("chart.html")` for a file you can share. Colours come from a
       colour-blind-checked palette in a fixed order, and identity is never shown by colour alone
-      (legends, marker shapes, hollow versus filled dots). Sample IDs appear in the hover text only
+      (legends, labels, hollow versus filled dots). Sample IDs appear in the hover text only
       with `show_ids=True`.
 
 ## The standard table

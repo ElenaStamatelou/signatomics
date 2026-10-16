@@ -50,7 +50,7 @@ names may still change before the first release.
 
 A DOI will come with the first release. Until then, cite the
 [GitHub repository](https://github.com/ElenaStamatelou/signatomics). If you use the public PAD000040 data,
-also cite the dataset and its paper (see [Example: a full analysis](guides/example-analysis.md#1-get-the-data)).
+also cite the dataset and its paper (see [the PAD000040 example](examples/pad000040.md#1-get-the-data)).
 
 ## Licence and trademarks
 

@@ -77,22 +77,24 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Start: start.md
-  - Guides:
-      - guides/index.md
+  - Learn:
+      - learn/index.md
       - Preprocessing:
-          - Data import: guides/data-import.md
-          - Quality control: guides/quality-control.md
-          - Bridging: guides/bridging.md
-          - Sample metadata: guides/sample-metadata.md
-      - "Example: a full analysis": guides/example-analysis.md
-  - Reference:
-      - reference/index.md
+          - Data import: learn/data-import.md
+          - Quality control: learn/quality-control.md
+          - Bridging: learn/bridging.md
+          - Sample metadata: learn/sample-metadata.md
+  - Functions:
+      - functions/index.md
       - Preprocessing:
-          - In one call: reference/prepare.md
-          - Data import: reference/reading.md
-          - Quality control: reference/quality.md
-          - Bridging: reference/bridging.md
-          - Sample metadata: reference/samples.md
+          - In one call: functions/prepare.md
+          - Data import: functions/reading.md
+          - Quality control: functions/quality.md
+          - Bridging: functions/bridging.md
+          - Sample metadata: functions/samples.md
+  - Examples:
+      - examples/index.md
+      - "Obesity and diabetes (PAD000040)": examples/pad000040.md
   - About: about.md
 
 extra:

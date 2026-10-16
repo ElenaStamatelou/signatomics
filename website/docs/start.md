@@ -137,8 +137,8 @@ data = so.prepare([so.example_file(1), so.example_file(2)], so.example_samples()
 ```
 
 `prepare` runs the four steps with their default choices and prints one short report, with a
-list of what to look at yourself (such as the outlier P07). See [In one call](reference/prepare.md).
+list of what to look at yourself (such as the outlier P07). See [In one call](functions/prepare.md).
 
 ### Next
 
-Each step on its own, with all its choices: follow [the route](guides/index.md).
+Each step on its own, with all its choices: follow [the route](learn/index.md).

@@ -23,8 +23,8 @@ data = so.read_npx(so.example_file())      # your own file: so.read_npx("my_npx_
 
 `so.example_file()` gives the path to a small, **synthetic** NPX file that comes with
 signatomics: one Target 96 plate with 40 samples, 8 controls and 92 assays. The values are
-synthetic, so you can follow every guide without data of your own. Real data appears in
-[Example: a full analysis](example-analysis.md).
+synthetic, so you can follow every lesson without data of your own. Real data appears in
+[Examples](../examples/index.md).
 
 <div class="sg-example" markdown>
 <p class="tag">On the synthetic example file</p>
@@ -86,6 +86,8 @@ removes them.
     Each measurement carries its own details: its plate, its QC status, and the LOD and
     MissingFreq of that assay on that plate. One row per sample and assay keeps them together.
     The table turns into one row per sample at the end of preprocessing, in the analysis table.
+
+Every option: [`read_npx`](../functions/reading.md#read_npx) in Functions.
 
 <div class="sg-lessonnav"><span></span><a href="../quality-control/">Quality control &rarr;</a></div>
 

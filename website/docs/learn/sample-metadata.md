@@ -62,5 +62,7 @@ quality control removed it (QC status FAIL).
     The example has 60 people, and quality control removed P20 (QC status FAIL) before this
     step. The report shows it under "missing from the NPX data".
 
+Every option: [`add_sample_info`](../functions/samples.md#add_sample_info) in Functions.
+
 <div class="sg-lessonnav"><a href="../bridging/">&larr; Bridging</a><span>Next: the analysis table (coming)</span></div>
 

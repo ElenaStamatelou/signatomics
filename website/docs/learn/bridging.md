@@ -126,5 +126,7 @@ from pulling it.
     about 0 by construction. The independent check is the PCA, which looks at all assays
     together.
 
+Every option: [`bridge_check`, `bridge_plates` and the charts](../functions/bridging.md) in Functions.
+
 <div class="sg-lessonnav"><a href="../quality-control/">&larr; Quality control</a><a href="../sample-metadata/">Sample metadata &rarr;</a></div>
 

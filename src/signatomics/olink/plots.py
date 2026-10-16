@@ -286,7 +286,7 @@ def plot_sample_qc(npx: pd.DataFrame, *, sd: float = 3.0, show_ids: bool = False
     plates = sorted(t["PlateID"].dropna().unique(), key=str) if "PlateID" in t.columns else [None]
     if len(plates) > len(SERIES):
         raise ValueError(f"{len(plates)} plates: too many to colour distinctly.")
-    symbols = ["circle", "square", "diamond", "triangle-up", "cross", "x", "star", "hexagon"]
+    symbols = ["circle"] * len(SERIES)                  # dots for every plate: colour and legend tell them apart
     several = len(panels) > 1
     fig = make_subplots(rows=1, cols=len(panels), horizontal_spacing=0.08,
                         subplot_titles=[str(p) for p in panels] if several else None)
@@ -338,7 +338,7 @@ def plot_sample_qc(npx: pd.DataFrame, *, sd: float = 3.0, show_ids: bool = False
 # ------------------------------------------------------------------------------------------
 
 def _plate_style(plates) -> dict:
-    symbols = ["circle", "square", "diamond", "triangle-up", "cross", "x", "star", "hexagon"]
+    symbols = ["circle"] * len(SERIES)                  # dots for every plate: colour and legend tell them apart
     if len(plates) > len(SERIES):
         raise ValueError(f"{len(plates)} plates: too many to colour distinctly.")
     return {p: (SERIES[i], symbols[i]) for i, p in enumerate(plates)}
