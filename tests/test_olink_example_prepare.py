@@ -10,8 +10,10 @@ from signatomics.olink import (add_sample_info, apply_qc, bridge_plates, example
 def test_example_data_is_the_same_every_time():
     a, b = example_data(), example_data()
     pd.testing.assert_frame_equal(a, b)
-    assert a["SampleID"].nunique() == 60 and a["Assay"].nunique() == 24
+    people = a[a["SampleType"] == "SAMPLE"]
+    assert people["SampleID"].nunique() == 60 and a["Assay"].nunique() == 92
     assert set(a["PlateID"]) == {"Plate 1", "Plate 2"}
+    assert (a[a["SampleType"] != "SAMPLE"].groupby("PlateID")["SampleID"].nunique() == 8).all()
 
 
 def test_example_data_has_what_the_checks_should_find():
@@ -21,7 +23,7 @@ def test_example_data_has_what_the_checks_should_find():
     assert not m["repeat"].any()
     assert m.loc[m["bridging"], "SampleID"].nunique() == 12
     assert sorted(rep.samples.loc[rep.samples["outlier"], "SampleID"]) == ["P07", "P33"]
-    assert (rep.proteins["below_lod"] > 0.5).sum() == 3
+    assert (rep.proteins["below_lod"] > 0.75).sum() >= 8
 
 
 def test_example_files_are_the_two_plates():
@@ -30,13 +32,14 @@ def test_example_files_are_the_two_plates():
     assert set(one["PlateID"]) == {"Plate 1"} and set(two["PlateID"]) == {"Plate 2"}
     both = pd.concat([one, two], ignore_index=True)
     pd.testing.assert_frame_equal(both, example_data(), check_dtype=False, check_like=True)
-    assert one.attrs["read_report"][-1] == "result: 960 rows = 40 samples x 24 assays"
+    assert one.attrs["read_report"][-1] == "result: 4416 rows = (40 samples + 8 controls) x 92 assays"
     with pytest.raises(ValueError):
         example_file(3)
 
 
 def test_example_samples_match_every_sample():
-    data = add_sample_info(example_data(), example_samples(), on="sample_id", verbose=False)
+    data = add_sample_info(apply_qc(example_data(), verbose=False), example_samples(),
+                           on="sample_id", verbose=False)
     assert data["group"].notna().all()
     assert set(data["group"]) == {"case", "control"}
 
@@ -59,7 +62,7 @@ def test_prepare_equals_the_steps_with_their_defaults():
 def test_prepare_report_is_short_and_lists_what_to_look_at():
     out = prepare(example_data(), verbose=False)
     report = out.attrs["prepare_report"]
-    assert report[0] == "data: 60 samples, 24 assays, 2 plates"
+    assert report[0] == "data: 60 samples + 8 controls, 92 assays, 2 plates"
     assert any(line.startswith("bridging: Plate 2 put on the scale of Plate 1") for line in report)
     assert any(line.strip().startswith("outliers") and "P33" in line for line in report)
     assert len(out.attrs["prepare_details"]) > len(report)

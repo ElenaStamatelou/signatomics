@@ -218,3 +218,6 @@ body { background: var(--sg-paper); }
 [data-md-color-scheme="slate"] .sg-plot[data-state="live"] { background: #16181b; }
 .sg-plot img { display: block; width: 100%; height: auto; }
 .sg-plot-live { width: 100%; }
+
+/* "optional" next to a heading (Start: bridging) */
+.md-typeset .sg-opt { font-size: 0.62em; font-weight: 400; color: var(--sg-muted); margin-left: 0.5em; letter-spacing: 0; }

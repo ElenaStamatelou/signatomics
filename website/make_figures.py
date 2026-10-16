@@ -12,9 +12,11 @@ Every chart is made by the package itself; sample IDs are hidden (the charts' de
 Needs kaleido for the static pictures (pip install kaleido).
 """
 
+import base64
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 import signatomics.olink as so
@@ -29,6 +31,12 @@ def _round(x, digits=3):
         return round(x, digits)
     if isinstance(x, list):
         return [_round(v, digits) for v in x]
+    if isinstance(x, dict) and "bdata" in x and "dtype" in x:
+        # Plotly packs numbers as base64 (8 bytes each): unpack to short rounded numbers
+        values = np.frombuffer(base64.b64decode(x["bdata"]), dtype=x["dtype"])
+        if "shape" in x:
+            values = values.reshape([int(s) for s in str(x["shape"]).split(",")])
+        return _round(values.tolist(), digits)
     if isinstance(x, dict):
         return {k: _round(v, digits) for k, v in x.items()}
     return x
@@ -36,7 +44,7 @@ def _round(x, digits=3):
 
 def save(name, fig):
     fig.write_image(OUT / f"{name}.svg")
-    spec = _round(json.loads(fig.to_json()))
+    spec = _round(json.loads(fig.to_json()), digits=2)
     spec.get("layout", {}).pop("template", None)          # the charts set their own style
     (OUT / f"{name}.json").write_text(json.dumps(spec, separators=(",", ":")), encoding="utf-8")
     kb = (OUT / f"{name}.json").stat().st_size / 1024
@@ -54,6 +62,7 @@ def main():
     save("example_npx_strip", so.plot_npx_strip(plate1))
     save("example_npx_strip_groups", so.plot_npx_strip(plate1, group="group", samples=so.example_samples(),
                                                        on="sample_id"))
+    save("example_bridge_bland_altman", so.plot_bridge_bland_altman(both_clean))
     save("example_bridge_scatter", so.plot_bridge_scatter(both_clean, ["IL6", "CCL4", "HGF"]))
     save("example_bridge_pca", so.plot_bridge_pca(both_clean, so.bridge_plates(both_clean, verbose=False)))
 
@@ -81,6 +90,7 @@ def main():
     save("npx_strip", so.plot_npx_strip(data, group="diabetes",
                                         proteins=list(report.below_lod_by_group.index[:6])))
     save("bridge_shift", so.plot_bridge_shift(clean[clean["OlinkID"].isin(set(pick))]))
+    save("bridge_bland_altman", so.plot_bridge_bland_altman(clean))
     save("bridge_scatter", so.plot_bridge_scatter(clean, scatter_proteins))
     save("bridge_pca", so.plot_bridge_pca(clean, bridged))
     print("scatter proteins:", scatter_proteins)

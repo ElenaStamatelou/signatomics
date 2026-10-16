@@ -66,8 +66,12 @@ def prepare(data, samples=None, *, on: str | None = None, group: str | None = No
     df = pd.concat(tables, ignore_index=True) if len(tables) > 1 else tables[0].copy()
     protein = "Assay" if "Assay" in df.columns else "OlinkID"
     plates = df["PlateID"].nunique() if "PlateID" in df.columns else 1
-    what = (f"{_n(df['SampleID'].nunique(), 'sample')}, {_n(df[protein].nunique(), 'assay')}"
-            + (f", {plates} plates" if plates > 1 else ""))
+    from .reader import _is_control_type
+    ctrl = _is_control_type(df["SampleType"]) if "SampleType" in df.columns else df["SampleID"].isna()
+    n_ctrl = df.loc[ctrl, "SampleID"].nunique()
+    what = (f"{_n(df.loc[~ctrl, 'SampleID'].nunique(), 'sample')}"
+            + (f" + {_n(n_ctrl, 'control')}" if n_ctrl else "")
+            + f", {_n(df[protein].nunique(), 'assay')}" + (f", {plates} plates" if plates > 1 else ""))
     short = [f"read {_n(files, 'file')}: {what}" if files else f"data: {what}"]
     details, to_check = list(short), []
 
@@ -77,7 +81,8 @@ def prepare(data, samples=None, *, on: str | None = None, group: str | None = No
     details += ["quality control (found):"] + [f"  {line}" for line in look.lines]
     # what apply_qc removes anyway (empty measurements, controls) is left out of "to look at"
     to_check += [line for line in look.lines
-                 if (line.startswith("WARNING") or line.startswith("outliers (")
+                 if (line.startswith("WARNING")
+                     or (line.startswith("outliers:") and not line.startswith("outliers: none"))
                      or "far more often in one" in line)
                  and "empty measurements" not in line and "apply_qc removes" not in line]
     clean = apply_qc(df, show_ids=show_ids, verbose=False)

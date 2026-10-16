@@ -21,25 +21,29 @@ import signatomics.olink as so
 data = so.read_npx(so.example_file())      # your own file: so.read_npx("my_npx_file.csv")
 ```
 
-`so.example_file()` is a small, **generated** NPX file of one plate that comes with signatomics:
-the values are made up, so you can follow every guide without data of your own. Real data
-appears in [Example: a full analysis](example-analysis.md).
+`so.example_file()` gives the path to a small, **synthetic** NPX file that comes with
+signatomics: one Target 96 plate with 40 samples, 8 controls and 92 assays. The values are
+synthetic, so you can follow every guide without data of your own. Real data appears in
+[Example: a full analysis](example-analysis.md).
 
 <div class="sg-example" markdown>
-<p class="tag">On the generated example file</p>
+<p class="tag">On the synthetic example file</p>
 
 ```text
 Reading report
   file: example_plate1.csv
   file type: .csv
   layout: long format (one row per sample and assay)
-  result: 960 rows = 40 samples x 24 assays
+  control samples: 8 (marked in SampleType); apply_qc removes them
+  result: 4416 rows = (40 samples + 8 controls) x 92 assays
 ```
 
 </div>
 
-The file holds 40 samples, each measured on 24 assays: one row per sample and assay, so
-40 × 24 = 960 rows. This is the **long format**, the layout every step of signatomics uses.
+The plate holds 40 samples and 8 controls, each measured on 92 assays: one row per sample and
+assay, so 48 × 92 = 4416 rows. This is the **long format**, the layout every step of signatomics
+uses. The controls are Olink's own (negative, plate and sample controls); quality control
+removes them.
 
 --8<-- "standard-table.html"
 
@@ -71,11 +75,13 @@ The file holds 40 samples, each measured on 24 assays: one row per sample and as
 
 ??? "Which NPX files have been tested?"
 
-    Long `.csv` files (commas or semicolons, decimal points or commas), `.xlsx` and `.parquet`
-    files of Target 96, Target 96 Extended and Reveal, and older wide files from NPX Manager.
-    Explore HT and Explore 3072 files should work as well; they are yet to be tested on real data.
+    Public NPX files from the [PRIDE affinity proteomics archive](https://www.ebi.ac.uk/pride/archive/affinity-proteomics)
+    of Target 48, Target 96, Explore 384, Explore 3072, Explore HT and Reveal; long `.csv`
+    files (commas or semicolons, decimal points or commas), `.xlsx` and `.parquet`; and older
+    wide files from NPX Manager. Where a file deviates (a sample-ID column holding something
+    else, numbers damaged by a spreadsheet), the report says so.
 
-??? question "Check yourself: why does each sample get 24 rows?"
+??? question "Check yourself: why does each sample get 92 rows?"
 
     Each measurement carries its own details: its plate, its QC status, and the LOD and
     MissingFreq of that assay on that plate. One row per sample and assay keeps them together.

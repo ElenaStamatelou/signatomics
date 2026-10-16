@@ -36,6 +36,7 @@ COLUMN_VARIANTS = {
     "Panel": ["Panel"],
     "Panel_Version": ["Panel_Version", "Panel_Lot_Nr"],
     "PlateID": ["PlateID", "Plate_ID", "Plate ID"],
+    "WellID": ["WellID", "Well_ID", "SampleWell"],
     "QC_Warning": ["QC_Warning", "SampleQC", "Sample_QC", "QC Warning"],
     "Assay_Warning": ["Assay_Warning", "AssayQC", "Assay_QC", "Assay warning"],
     "LOD": ["LOD", "LODNPX", "LOD_NPX", "PlateLOD", "Plate_LOD"],
@@ -46,6 +47,22 @@ COLUMN_VARIANTS = {
 }
 
 REQUIRED_ONE_OF = ["Assay", "OlinkID"]  # at least one protein identifier
+
+# Olink's sample types: SAMPLE, and controls such as NEGATIVE_CONTROL, PLATE_CONTROL,
+# SAMPLE_CONTROL, CALIBRATOR (older: "Negative Control", "IPC", ...)
+CONTROL_TYPE = r"(?i)control|calibrator|negative|\bipc\b|blank"
+
+
+def _is_control_type(values: pd.Series) -> pd.Series:
+    """True for Olink control sample types; False for SAMPLE and for empty values."""
+    text = values.astype("string").str.strip()
+    return text.str.contains(CONTROL_TYPE, na=False).astype(bool)
+
+
+def _is_olink_sample_type(values: pd.Series) -> bool:
+    """Whether a column holds Olink's sample types (SAMPLE and controls), e.g. versus groups."""
+    text = values.dropna().astype("string").str.strip()
+    return len(text) > 0 and bool((text.str.upper().eq("SAMPLE") | _is_control_type(text)).all())
 
 NUMERIC = ["NPX", "Ct", "Quantified_value", "LOD", "PlateLOD", "MaxLOD", "MissingFreq",
            "LLOQ", "ULOQ", "Lowest_quantifiable_level", "Adj_factor", "Index",
@@ -294,18 +311,31 @@ def _wide_to_long(grid: pd.DataFrame, report: list[str]) -> pd.DataFrame:
 def _standardise_columns(df: pd.DataFrame, column_map: dict | None, report: list[str]) -> pd.DataFrame:
     df = df.rename(columns=lambda c: str(c).strip())
     if column_map:
-        df = df.rename(columns=column_map)
-        report.append(f"columns renamed by you: {column_map}")
+        # a column that already has the new name is kept aside, e.g. SampleID -> SampleID_in_file
+        clash = {new: f"{new}_in_file" for new in column_map.values()
+                 if new in df.columns and new not in column_map}
+        df = df.rename(columns=clash).rename(columns=column_map)
+        report.append(f"columns renamed by you: {column_map}"
+                      + (f" (the file's own {', '.join(clash)} kept as {', '.join(clash.values())})"
+                         if clash else ""))
     lookup = {_key(v): std for std, variants in COLUMN_VARIANTS.items() for v in variants}
     renames = {}
+    kept = []
     for col in df.columns:
         std = lookup.get(_key(col))
+        if std == "SampleType" and not _is_olink_sample_type(df[col]):
+            kept.append(col)
+            continue
         if std and std != col and std not in df.columns and std not in renames.values():
             renames[col] = std
     if renames:
         df = df.rename(columns=renames)
         report.append("columns renamed to the names signatomics uses: "
                       + ", ".join(f"{a} -> {b}" for a, b in renames.items()))
+    for col in kept:
+        values = ", ".join(map(str, pd.unique(df[col].dropna())[:5]))
+        report.append(f"{col} kept as it is: its values ({values}) are groups, so it is read as "
+                      f"sample information; controls are then recognised by their sample IDs")
     return df
 
 
@@ -373,6 +403,13 @@ def _to_number(s: pd.Series) -> tuple[pd.Series, list[str]]:
     """Text to numbers: handles decimal commas ("0,5"), percentages ("100%") and "No Data"."""
     notes = []
     text = s.astype("string").str.strip()
+    damaged = text.str.fullmatch(r"-?\d{1,3}(\.\d{3}){2,}", na=False)
+    if damaged.any():
+        notes.append(f"WARNING damaged by a thousands separator (e.g. '{text[damaged].iloc[0]}'): "
+                     f"{int(damaged.sum())} cells read as missing values, and the rest of the "
+                     f"column is unreliable too; export the file again from Olink's software")
+        s = s.mask(damaged)
+    text = s.astype("string").str.strip()
     if text.str.contains(",", regex=False).any() and not text.str.contains(".", regex=False).any():
         text = text.str.replace(",", ".", regex=False)
         notes.append("decimal commas")
@@ -402,6 +439,11 @@ def _convert_types(df: pd.DataFrame, report: list[str]) -> pd.DataFrame:
             if notes:
                 label = "MissingFreq (missing frequency)" if col == "MissingFreq" else col
                 report.append(f"{label}: " + "; ".join(notes))
+    if "NPX" in df.columns and pd.api.types.is_numeric_dtype(df["NPX"]) and df["NPX"].notna().any():
+        high = df["NPX"].quantile(0.99)
+        if high > 40:
+            report.append(f"NPX: WARNING values up to {high:.0f} (99th percentile), while NPX usually "
+                          f"lies between about -5 and 20: check how the numbers are written in the file")
     if "Index" in df.columns and pd.api.types.is_float_dtype(df["Index"]):
         whole = df["Index"].dropna()
         if (whole == whole.round()).all():
@@ -480,6 +522,10 @@ def read_npx(path, *, sep: str | None = None, column_map: dict | None = None,
     df = _standardise_columns(df, column_map, report)
     _check_required(df, path)
     df = _convert_types(df, report)
+    empty = [c for c in ("LOD", "MissingFreq") if c in df.columns and df[c].isna().all()]
+    if empty:
+        df = df.drop(columns=empty)
+        report.append(f"left out, because empty in the file: {', '.join(empty)}")
     absent = [c for c in OPTIONAL if c not in df.columns]
     if absent:
         report.append("optional columns missing from the file: "
@@ -492,16 +538,27 @@ def read_npx(path, *, sep: str | None = None, column_map: dict | None = None,
         if col in df.columns and df[col].dtype != bool:
             df[col] = df[col].mask(df[col].astype("string").str.strip().str.upper().isin(MISSING_WORDS))
     if "SampleType" in df.columns:
-        is_ctrl = df["SampleType"].notna() & (df["SampleType"].astype("string").str.upper() != "SAMPLE")
+        is_ctrl = _is_control_type(df["SampleType"])
         keys = [c for c in ("SampleID", "Index", "WellID", "Panel", "PlateID") if c in df.columns]
-        n_ctrl = df[is_ctrl.fillna(False).astype(bool)].groupby(keys, dropna=False).ngroups
+        n_ctrl = df[is_ctrl].groupby(keys, dropna=False).ngroups
         if n_ctrl:
-            report.append(f"control samples: {n_ctrl} (SampleType other than SAMPLE); apply_qc removes them")
+            report.append(f"control samples: {n_ctrl} (marked in SampleType); apply_qc removes them")
     if "AssayType" in df.columns:
         n_ctrl = df.loc[df["AssayType"].astype("string").str.lower() != "assay", "OlinkID"].nunique()
         if n_ctrl:
-            report.append(f"internal control assays: {n_ctrl} (AssayType other than assay); apply_qc removes them")
+            report.append(f"internal control assays: {n_ctrl} (marked in AssayType); apply_qc removes them")
 
+    prot = "Assay" if "Assay" in df.columns else "OlinkID"
+    typical, total = df.groupby("SampleID")[prot].nunique().median(), df[prot].nunique()
+    if typical < 0.5 * total:
+        other = {c: df[c].nunique() for c in df.columns
+                 if "sample" in str(c).lower() and c not in ("SampleID", "SampleType")}
+        report.append(
+            f"WARNING a typical sample ID has only {typical:g} of the {total} assays: SampleID may hold "
+            f"something else" + (". Columns that may hold the sample IDs: "
+                                 + ", ".join(f"{c} ({n} values)" for c, n in other.items())
+                                 + f"; for example read_npx(..., column_map={{'{next(iter(other))}': 'SampleID'}})"
+                                 if other else ""))
     runs = df.drop_duplicates([c for c in ("SampleID", "Index", "PlateID") if c in df.columns])
     protein_col = "Assay" if "Assay" in df.columns else "OlinkID"
     n_ids, n_assays, n_runs = df["SampleID"].nunique(), df[protein_col].nunique(), len(runs)
@@ -511,6 +568,10 @@ def read_npx(path, *, sep: str | None = None, column_map: dict | None = None,
         return f"{k} {word}" + ("" if k == 1 else "s")
     shape = (f"{n(n_runs, 'sample')} x {n(n_assays, 'assay')}" if n_runs == n_ids
              else f"{n(n_runs, 'measurement')} x {n(n_assays, 'assay')} ({n_ids} samples, some measured twice)")
+    if "SampleType" in df.columns and n_runs == n_ids:
+        n_ctrl = runs.loc[_is_control_type(runs["SampleType"]), "SampleID"].nunique()
+        if n_ctrl:
+            shape = f"({n(n_ids - n_ctrl, 'sample')} + {n(n_ctrl, 'control')}) x {n(n_assays, 'assay')}"
     report.append(f"result: {n(len(df), 'row')} = {shape}{plates}"
                   if len(df) == n_runs * n_assays
                   else f"result: {n(len(df), 'row')}: {shape}{plates}")

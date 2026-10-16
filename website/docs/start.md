@@ -1,6 +1,6 @@
 ---
 title: "Start in 5 minutes: Olink data in Python"
-description: "Install signatomics, read an NPX file, look at its quality and preprocess it in one call: four steps."
+description: "Install signatomics and run the four preprocessing steps on synthetic NPX data: data import, quality control, bridging and sample metadata."
 hide:
   - navigation
   - toc
@@ -10,8 +10,8 @@ hide:
 
 # Start in 5 minutes
 
-Four steps on a generated example NPX file that comes with signatomics (made-up values), so you
-get exactly the output shown here.
+The four preprocessing steps on synthetic NPX data that comes with signatomics, so you get
+exactly the output shown here.
 { .lede }
 
 ### 1. Install
@@ -24,7 +24,7 @@ pip install "signatomics[olink] @ git+https://github.com/ElenaStamatelou/signato
 Python package index; <code>[olink]</code> adds what the Olink part needs (reading
 <code>.xlsx</code> and <code>.parquet</code> files, charts).</p>
 
-### 2. Read an NPX file
+### 2. Data import
 
 ```python
 import signatomics.olink as so
@@ -32,63 +32,113 @@ import signatomics.olink as so
 data = so.read_npx(so.example_file())      # your own file: so.read_npx("my_npx_file.csv")
 ```
 
+`so.example_file()` gives the path to a **synthetic** NPX file that comes with signatomics: one
+Target 96 plate with 40 samples, 8 controls and 92 assays. Synthetic means the values are
+generated to look like real Olink data, without any person or study behind them.
+
 <div class="sg-example" markdown>
-<p class="tag">On the generated example file</p>
+<p class="tag">On the synthetic example file</p>
 
 ```text
 Reading report
   file: example_plate1.csv
   file type: .csv
   layout: long format (one row per sample and assay)
-  result: 960 rows = 40 samples x 24 assays
+  control samples: 8 (marked in SampleType); apply_qc removes them
+  result: 4416 rows = (40 samples + 8 controls) x 92 assays
 ```
 
 </div>
 
-### 3. Look at its quality
+--8<-- "standard-table.html"
+
+### 3. Quality control
 
 ```python
-so.qc_report(data)
+so.qc_report(data)                # look: your data stays as it is
+so.plot_npx_strip(data)           # every value per assay, with the LOD
+clean = so.apply_qc(data)         # act: removes controls and FAIL samples
 ```
 
 <div class="sg-example" markdown>
-<p class="tag">On the generated example file</p>
+<p class="tag">On the synthetic example file</p>
 
 ```text
 Quality report
-  data: 40 samples, 24 assays, 1 plate
+  controls (left out of the checks below; apply_qc removes them): 8 control samples (3 NEGATIVE_CONTROL, 3 PLATE_CONTROL, 2 SAMPLE_CONTROL)
+  data: 40 samples, 92 assays, 1 plate
   QC status: 38 PASS, 1 WARN, 1 FAIL
-  assays below the LOD in more than 50% of the measurements: 3 of 24
-  outliers (median or spread over all assays more than 3 SD from the others; see plot_sample_qc): P07
+  assays below the LOD in more than 75% of the samples: 11 of 92 (a sign of data quality; they stay in)
+  outliers: 1 of 40 samples (P07); see plot_sample_qc
 ```
 
 </div>
 
-This only looks: your data stays as it is.
+<figure class="sg-chart" markdown>
+<div class="sg-plot" data-src="../assets/figures/example_npx_strip.json"><img src="../assets/figures/example_npx_strip.svg" alt="Every NPX value per assay as a dot, with the detection limit as a red dot" loading="lazy"></div>
+<figcaption markdown>`so.plot_npx_strip(data)`. Each dot is one sample's NPX value for one assay; the red dot is the assay's detection limit (LOD), and hollow dots lie below it. Hover a dot for its value.</figcaption>
+</figure>
 
-### 4. Preprocess it in one call
+### 4. Bridging <span class="sg-opt">optional: for samples on several plates</span>
+
+The example has a second plate; 12 samples are on both.
 
 ```python
-clean = so.prepare(so.example_file())
+import pandas as pd
+
+both = pd.concat([so.read_npx(so.example_file(1)), so.read_npx(so.example_file(2))],
+                 ignore_index=True)
+clean = so.apply_qc(both)
+combined = so.bridge_plates(clean)     # plate 2 on the scale of plate 1
 ```
 
 <div class="sg-example" markdown>
-<p class="tag">On the generated example file</p>
+<p class="tag">On the synthetic example files</p>
 
 ```text
-Prepared data
-  read 1 file: 40 samples, 24 assays
-  quality control: removed 1 measurement (QC status FAIL): P20
-  result: 39 samples, 24 assays
-  to look at (prepare leaves these to you):
-    outliers (median or spread over all assays more than 3 SD from the others; see plot_sample_qc): P07
+Bridging report
+  reference (kept as it is): Plate 1
+  Plate 2: 92 assays adjusted by their adjustment factor (median -0.51 NPX, from -1.67 to +1.05), each from 12 bridge samples
+  ...
 ```
 
 </div>
 
-`clean` is ready for analysis. `prepare` also bridges plates and adds your sample metadata when you
-give them: see [In one call](reference/prepare.md).
+<figure class="sg-chart" markdown>
+<div class="sg-plot" data-src="../assets/figures/example_bridge_pca.json"><img src="../assets/figures/example_bridge_pca.svg" alt="PCA of the bridge samples before and after bridging, coloured by plate" loading="lazy"></div>
+<figcaption markdown>`so.plot_bridge_pca(clean, combined)`. Each line joins one bridge sample's two measurements: after bridging they lie together and the plates overlap. The point far from the rest is P33, the broken tube.</figcaption>
+</figure>
+
+### 5. Sample metadata
+
+```python
+data = so.add_sample_info(combined, so.example_samples(), on="sample_id")
+```
+
+<div class="sg-example" markdown>
+<p class="tag">On the synthetic example files</p>
+
+```text
+Matching report
+  matched on: SampleID (NPX data) = sample_id (your sample metadata)
+  matched: 59 of 59 sample IDs in the NPX data
+  missing from the NPX data: P20
+```
+
+</div>
+
+Your sample metadata (demographics, clinical data, ...) now sits next to the NPX values.
+P20 is missing because quality control removed it (QC status FAIL).
+
+### All of it in one call
+
+```python
+data = so.prepare([so.example_file(1), so.example_file(2)], so.example_samples(), on="sample_id")
+```
+
+`prepare` runs the four steps with their default choices and prints one short report, with a
+list of what to look at yourself (such as the outlier P07). See [In one call](reference/prepare.md).
 
 ### Next
 
-Each step can also be done on its own, with your own choices: follow [the route](guides/index.md).
+Each step on its own, with all its choices: follow [the route](guides/index.md).

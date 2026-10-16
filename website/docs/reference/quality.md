@@ -14,20 +14,22 @@ Quality control has two halves: first **look** ([`qc_report`](#qc_report) and th
 Look at data quality. Your data stays as it is.
 
 ```python
-qc_report(npx, *, group=None, samples=None, on=None, max_below_lod=0.5, outlier_sd=3.0,
+qc_report(npx, *, group=None, samples=None, on=None, max_below_lod=0.75, outlier_sd=3.0,
           show_ids=True, verbose=True) -> QCReport
 ```
 
 It checks:
 
-- control samples and control assays;
+- control samples and control assays (from `SampleType` and `AssayType`; in files without
+  `SampleType`, sample IDs that look like controls, such as `NEG CTRL` or `CONTROL_SAMPLE`, get a
+  warning);
 - rows without a sample ID;
 - QC status per measurement: PASS, WARN or FAIL (older Target 96 exports: Pass / Warning);
 - completely empty measurements;
 - samples measured twice on the same plate (duplicate sample IDs) and bridge samples;
-- proteins that are mostly below LOD;
-- outliers: measurements whose median or spread over all assays lies far from the
-  others (Olink's standard sample check).
+- assays below the LOD in more than 75% of the samples (a sign of data quality);
+- outliers: samples whose median or spread over all assays lies more than 3 SD from the
+  others (Olink's standard sample check), reported as a count with their IDs.
 
 With `group`, it also checks whether a group is missing from a plate, and whether
 detectability differs between groups.
@@ -40,7 +42,7 @@ detectability differs between groups.
 | `group` | str | `None` | a column of your sample metadata, e.g. `"diabetes"` |
 | `samples` | path or DataFrame | `None` | your sample metadata, when `group` is a column there: it is only looked up, and `npx` stays as it is |
 | `on` | str | `None` | with `samples`: the column that holds the same IDs as `SampleID` |
-| `max_below_lod` | float 0–1 | `0.5` | assays below the LOD in more than this share are *reported*; `apply_qc(max_below_lod=...)` removes them |
+| `max_below_lod` | float 0–1 | `0.75` | assays below the LOD in more than this share of the samples are *reported*, as a sign of data quality; they stay in the data |
 | `outlier_sd` | float | `3.0` | a measurement whose median or IQR over all proteins is more than this many standard deviations from the mean (per panel) is reported as odd |
 | `show_ids` | bool | `True` | list sample IDs; `False` gives counts only |
 | `verbose` | bool | `True` | print the report |
@@ -64,7 +66,7 @@ notebook. The tables behind the report are its attributes:
   5 samples. Plate differences could then look like group differences.
 - **Detectability differs:** proteins far more often below the LOD in one group than in
   another (by 30 percentage points or more). Keep these: being undetectable in one group can itself be a signal.
-- **Odd sample measurements** point to a technical problem (dilution, haemolysis, a pipetting
+- **Outliers** point to a technical problem (dilution, haemolysis, a pipetting
   error). If you decide to remove one, do it with `apply_qc(drop_samples=...)`
   so that the removal is reported.
 
@@ -91,8 +93,8 @@ Quality report
   QC status: 161 PASS, 17 WARN, 0 FAIL
   WARNING empty measurements (no NPX value at all): 2 (IDs hidden)
   bridge samples (on more than one plate): 35
-  assays below the LOD in more than 50% of the measurements: 14 of 92
-  outliers (median or spread over all assays more than 3 SD from the others; see plot_sample_qc): 1 (IDs hidden)
+  assays below the LOD in more than 75% of the samples: 8 of 92 (a sign of data quality; they stay in)
+  outliers: 1 of 178 measurements (IDs hidden); see plot_sample_qc
   WARNING group mixed up with plate: 'Prediabetes' is missing from Inflammation F.I.F 21/03/2024. A plate difference can then look like a group difference: bridge the plates before comparing groups.
 ```
 
@@ -123,7 +125,7 @@ apply_qc(npx, *, drop_controls=True, drop_fail=True, drop_warnings=False, drop_e
 | `drop_fail` | bool | `True` | remove measurements with QC status FAIL (as Olink's own cleaning does) |
 | `drop_warnings` | bool | `False` | also remove measurements with QC status WARN; by default they are kept and counted in `qc_report` |
 | `repeats` | str | `"prefer_pass_then_last"` | for a sample measured more than once on the same plate: keep a passed measurement, and of those the last one (usually the rerun). Other options: `"first"`, `"last"`, `"keep_all"` |
-| `max_below_lod` | float 0–1 | `None` | remove assays below the LOD in more than this share. Default: **keep all assays** |
+| `max_below_lod` | float 0–1 | `None` | remove assays below the LOD in more than this share. Default: **keep all assays**; removing them is usually not advised (see the note below) |
 | `show_ids` | bool | `True` | list sample IDs in the report |
 | `verbose` | bool | `True` | print the report |
 
@@ -134,10 +136,13 @@ bridging needs.
 **Output.** The cleaned table, with the same columns. The list of removals is stored in
 `df.attrs["qc_applied"]`.
 
-!!! note "Why all proteins are kept by default"
-    A protein below LOD in one group and above it in another is informative. Proteins that carry
-    no information drop out of the biomarker search anyway. Look at `qc_report(..., group=...)` or
-    `plot_below_lod(..., group=...)` before choosing a threshold.
+!!! note "Why all assays are kept by default"
+    Olink advises excluding assays with a large share of samples below the LOD, with the
+    cutoff "decided on a study basis", and also warns that some of the most distinct biomarkers
+    are low proteins. In practice cutoffs of 50% are common. signatomics reports assays above
+    75% as a sign of data quality and keeps them: an assay below the LOD in one group and above
+    it in another can be a biomarker, and assays without information drop out of the analysis
+    anyway. Look at `qc_report(..., group=...)` or `plot_below_lod(..., group=...)` first.
 
 **Errors.** `ValueError` for an unknown `repeats` rule.
 
@@ -189,12 +194,14 @@ plot_below_lod(npx, *, group=None, samples=None, on=None, max_below_lod=None,
 
 ### `plot_npx_strip`
 
-Every measurement as a dot, per protein, with groups side by side and the LOD as a red line.
-Values below the LOD are drawn **hollow**.
+Every measurement as a dot, per protein, with groups side by side and the LOD as a red dot.
+The dots of a protein lie on one vertical line, half transparent, so the chart stays narrow for
+many proteins. Values below the LOD are drawn **hollow**. For panels with more than 96 proteins
+it shows the 48 with the most values below the LOD, unless you choose `proteins`.
 
 ```python
-plot_npx_strip(npx, *, group=None, samples=None, on=None, proteins=None, per_row=30,
-               order="name", show_ids=False, seed=0) -> Figure
+plot_npx_strip(npx, *, group=None, samples=None, on=None, proteins=None, per_row=48,
+               order="name", show_ids=False, max_proteins=96) -> Figure
 ```
 
 | Argument | Default | Meaning |
@@ -202,16 +209,16 @@ plot_npx_strip(npx, *, group=None, samples=None, on=None, proteins=None, per_row
 | `group` | `None` | colour by this column (at most 3 groups) |
 | `samples`, `on` | `None` | your sample metadata and its ID column, when `group` is a column there |
 | `proteins` | `None` | list of protein names to show; default all |
-| `per_row` | `30` | proteins per row; long lists are split over rows |
+| `per_row` | `48` | proteins per row; long lists are split over rows |
 | `order` | `"name"` | `"name"` (alphabetical) or `"below_lod"` (most below LOD first) |
 | `show_ids` | `False` | sample IDs in the hover text |
-| `seed` | `0` | the random side-to-side spread of the dots (same seed = same picture) |
+| `max_proteins` | `96` | above this many proteins, a selection is shown unless `proteins` is given (the subtitle says which) |
 
 **Errors.** `ValueError` when no protein is left to plot, or with more than 3 groups.
 
 <figure class="sg-chart" markdown>
-<div class="sg-plot" data-src="../../assets/figures/npx_strip.json"><img src="../../assets/figures/npx_strip.svg" alt="Strip plot: NPX per protein for six proteins, coloured by diabetes group, with the detection limit as a red line" loading="lazy"></div>
-<figcaption markdown>`plot_npx_strip(bridged, group="diabetes", proteins=[...])`: the six proteins whose detectability differs most between the groups. Hollow dots are below the detection limit (the red line).</figcaption>
+<div class="sg-plot" data-src="../../assets/figures/npx_strip.json"><img src="../../assets/figures/npx_strip.svg" alt="Strip plot: NPX per protein for six proteins, coloured by diabetes group, with the detection limit as a red dot" loading="lazy"></div>
+<figcaption markdown>`plot_npx_strip(bridged, group="diabetes", proteins=[...])`: the six proteins whose detectability differs most between the groups. Hollow dots are below the detection limit (the red dot).</figcaption>
 </figure>
 
 ### `plot_group_by_plate`

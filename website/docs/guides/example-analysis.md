@@ -70,8 +70,8 @@ Quality report
   QC status: 161 PASS, 17 WARN, 0 FAIL
   WARNING empty measurements (no NPX value at all): 2 (IDs hidden)
   bridge samples (on more than one plate): 35
-  assays below the LOD in more than 50% of the measurements: 14 of 92
-  outliers (median or spread over all assays more than 3 SD from the others; see plot_sample_qc): 1 (IDs hidden)
+  assays below the LOD in more than 75% of the samples: 8 of 92 (a sign of data quality; they stay in)
+  outliers: 1 of 178 measurements (IDs hidden); see plot_sample_qc
   WARNING group mixed up with plate: 'Prediabetes' is missing from Inflammation F.I.F 21/03/2024. A plate difference can then look like a group difference: bridge the plates before comparing groups.
 ```
 

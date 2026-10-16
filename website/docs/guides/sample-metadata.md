@@ -24,7 +24,7 @@ data = so.add_sample_info(combined, samples, on="sample_id")
 ```
 
 <div class="sg-example" markdown>
-<p class="tag">On the generated example files</p>
+<p class="tag">On the synthetic example files</p>
 
 ```text
 Matching report

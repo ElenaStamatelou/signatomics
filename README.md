@@ -17,7 +17,7 @@ build on it later.
 ```python
 import signatomics.olink as so
 
-data  = so.read_npx(so.example_file())    # a generated example NPX file; your own: so.read_npx("my_npx_file.csv")
+data  = so.read_npx(so.example_file())    # a synthetic example NPX file; your own: so.read_npx("my_npx_file.csv")
 so.qc_report(data)                        # look at quality: your data stays as it is
 clean = so.prepare(so.example_file())     # read, quality control, bridging and sample metadata in one call
 ```
@@ -61,8 +61,8 @@ Requires Python 3.10 or newer. See [Start in 5 minutes](https://signatomics.elen
 | `website/` | the documentation website (MkDocs Material) |
 | `docs/` | function reference pointer, notes on the example datasets |
 
-Public datasets stay outside this repository; the only data inside are the small, generated example
-files of the package (made-up values). See [docs/datasets.md](docs/datasets.md).
+Public datasets stay outside this repository; the only data inside are the small, synthetic example
+files of the package. See [docs/datasets.md](docs/datasets.md).
 
 ## Author
 

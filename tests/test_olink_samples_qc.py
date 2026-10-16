@@ -211,7 +211,7 @@ def test_controls_without_id_and_repeats_by_well(tmp_path):
     assert any("control samples: 2" in line for line in df.attrs["read_report"])
     rep = qc_report(df, verbose=False)
     text_rep = str(rep)
-    assert "2 control sample measurements" in text_rep
+    assert "2 control samples (2 SAMPLE_CONTROL)" in text_rep
     assert "3 measurements of 2 samples" in text_rep                    # controls left out
     assert "(duplicate sample IDs): S1" in text_rep                                    # recognised by WellID
     clean = apply_qc(df, drop_warnings=False, verbose=False)

@@ -32,29 +32,35 @@ combined = so.bridge_plates(clean)      # act: put them on one scale
 ```
 
 <div class="sg-example" markdown>
-<p class="tag">On the generated example files: the check</p>
+<p class="tag">On the synthetic example files: the check</p>
 
 ```text
 Bridging check
   reference: Plate 1
-  Plate 2: reads +0.44 NPX compared with Plate 1 (median over assays; per assay -0.39 to +1.81), measured on 12 bridge samples
-    assays shifted by more than 0.1 NPX: 23 of 24 - bridging needed
-    noise: the bridge samples' differences spread 0.45 NPX per assay (typical IQR); bridging removes the shift; this noise stays
+  Plate 2: reads +0.51 NPX compared with Plate 1 (median over assays; per assay -1.05 to +1.67), measured on 12 bridge samples
+    assays shifted by more than 0.1 NPX: 83 of 92 - bridging needed
+    noise: the bridge samples' differences spread 0.47 NPX per assay (typical IQR); bridging removes the shift; this noise stays
     bridge samples that shift differently from the others (a mix-up or a degraded tube?): P33
 ```
 
 </div>
 
+<figure class="sg-chart" markdown>
+<div class="sg-plot" data-src="../../assets/figures/example_bridge_bland_altman.json"><img src="../../assets/figures/example_bridge_bland_altman.svg" alt="Bland-Altman plot of the bridge samples: difference between the plates against their mean" loading="lazy"></div>
+<figcaption markdown>`so.plot_bridge_bland_altman(clean)`: how much the plates differ, before bridging. Each point is one bridge sample on one assay: the mean of its two measurements (left to right) and the difference, Plate 2 minus Plate 1 (bottom to top). The solid line is the median difference, +0.48 NPX: the shift that bridging removes. The dotted lines enclose the middle 95% of the differences. The band far below is P33, the broken tube, on every assay. Hover a point for its assay.</figcaption>
+</figure>
+
+
 Plate 2 reads higher than Plate 1, by a different amount for each assay, so each assay gets its
 own correction.
 
 <div class="sg-example" markdown>
-<p class="tag">On the generated example files: the bridging</p>
+<p class="tag">On the synthetic example files: the bridging</p>
 
 ```text
 Bridging report
   reference (kept as it is): Plate 1
-  Plate 2: 24 assays adjusted by their adjustment factor (median -0.44 NPX, from -1.81 to +0.39), each from 12 bridge samples
+  Plate 2: 92 assays adjusted by their adjustment factor (median -0.51 NPX, from -1.67 to +1.05), each from 12 bridge samples
   NPX and LOD shifted together, so 'below the LOD' stays the same; the original values are in NPX_unbridged and LOD_unbridged
   check: plot_bridge_pca(before, after) - each bridge sample's two measurements should now lie together
 ```
@@ -73,7 +79,7 @@ from pulling it.
 
 <figure class="sg-chart" markdown>
 <div class="sg-plot" data-src="../../assets/figures/example_bridge_pca.json"><img src="../../assets/figures/example_bridge_pca.svg" alt="PCA of the bridge samples before and after bridging, coloured by plate" loading="lazy"></div>
-<figcaption markdown>`so.plot_bridge_pca(clean, combined)`: check that it worked. Each line joins one bridge sample's two measurements. After bridging they lie close together and the plates overlap.</figcaption>
+<figcaption markdown>`so.plot_bridge_pca(clean, combined)`: check that it worked. Each line joins one bridge sample's two measurements. After bridging they lie close together and the plates overlap. The point far from the rest is P33, the broken tube.</figcaption>
 </figure>
 
 

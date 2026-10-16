@@ -15,7 +15,7 @@ def test_olink_public_functions_one_per_step():
         "qc_report", "apply_qc",
         "plot_below_lod", "plot_npx_strip", "plot_group_by_plate", "plot_sample_qc",
         "bridge_check", "bridge_plates",
-        "plot_bridge_shift", "plot_bridge_scatter", "plot_bridge_pca",
+        "plot_bridge_shift", "plot_bridge_bland_altman", "plot_bridge_scatter", "plot_bridge_pca",
         "prepare", "example_file", "example_data", "example_samples",
         "QCReport", "BridgeCheck",
     }

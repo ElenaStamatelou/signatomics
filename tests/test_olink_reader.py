@@ -94,6 +94,25 @@ def test_clear_message_when_not_an_npx_file(tmp_path):
     assert "'Patient': 'SampleID'" in str(err.value)          # a suggestion to copy
 
 
+def test_sample_id_column_holding_something_else(tmp_path):
+    rows = [f"{i},A{i % 2 + 1},{assay},4.{i}" for i, assay in enumerate(["IL8", "IL6", "IL10"] * 2)]
+    text = "SampleID,SampleName,Assay,NPX\n" + "\n".join(rows) + "\n"
+    path = write(tmp_path, text)
+    report = read_npx(path, verbose=False).attrs["read_report"]
+    assert any("SampleID may hold something else" in line and "SampleName" in line for line in report)
+    fixed = read_npx(path, column_map={"SampleName": "SampleID"}, verbose=False)
+    assert sorted(fixed["SampleID"].unique()) == ["A1", "A2"] and "SampleID_in_file" in fixed.columns
+
+
+def test_damaged_numbers_and_group_sample_type(tmp_path):
+    text = ("SampleID,Sample_Type,Assay,NPX\nCONTROL_SAMPLE,AD,IL8,1.205.603\n"
+            "A1,AD,IL8,912.855\nA2,HC,IL8,4.8\n")
+    df = read_npx(write(tmp_path, text), verbose=False)
+    report = " ".join(df.attrs["read_report"])
+    assert "thousands separator" in report and "Sample_Type kept as it is" in report
+    assert "Sample_Type" in df.columns and "SampleType" not in df.columns
+
+
 def test_missing_optional_columns_are_reported_with_a_suggestion(tmp_path):
     text = "SampleID,Assay,NPX,Plate\nA1,IL8,4.8,p1\n"
     report = read_npx(write(tmp_path, text), verbose=False).attrs["read_report"]

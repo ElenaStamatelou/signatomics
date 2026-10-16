@@ -55,6 +55,17 @@ gives the same table.
 - `ValueError`: a needed column is missing (sample ID, protein, value). The message lists your
   file's columns and suggests a `column_map` to copy, based on the column names.
 
+The report also warns when a file looks unusual, as seen in public NPX files:
+
+- numbers damaged by a spreadsheet's thousands separator (e.g. `1.205.603`), and NPX values far
+  outside the usual range;
+- a `SampleID` column that seems to hold something else (each ID has only a few of the assays),
+  with the columns that may hold the sample IDs; `column_map={"SampleName": "SampleID"}` then
+  keeps the file's own column as `SampleID_in_file`;
+- a `Sample_Type` column holding groups (such as `AD`, `HC`) instead of Olink's sample types: it
+  is kept as sample information;
+- `LOD` or `MissingFreq` columns that are empty in the file: they are left out.
+
 Missing optional columns (`LOD`, `PlateID`, `QC_Warning`) get a line in the reading report, with
 what each is needed for and, when a column name hints at one, a `column_map` suggestion.
 

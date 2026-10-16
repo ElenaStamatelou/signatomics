@@ -23,30 +23,32 @@ so.qc_report(data)
 ```
 
 <div class="sg-example" markdown>
-<p class="tag">On the generated example file</p>
+<p class="tag">On the synthetic example file</p>
 
 ```text
 Quality report
-  data: 40 samples, 24 assays, 1 plate
+  controls (left out of the checks below; apply_qc removes them): 8 control samples (3 NEGATIVE_CONTROL, 3 PLATE_CONTROL, 2 SAMPLE_CONTROL)
+  data: 40 samples, 92 assays, 1 plate
   QC status: 38 PASS, 1 WARN, 1 FAIL
-  assays below the LOD in more than 50% of the measurements: 3 of 24
-  outliers (median or spread over all assays more than 3 SD from the others; see plot_sample_qc): P07
+  assays below the LOD in more than 75% of the samples: 11 of 92 (a sign of data quality; they stay in)
+  outliers: 1 of 40 samples (P07); see plot_sample_qc
 ```
 
 </div>
 
 | Report line | What it means |
 |---|---|
+| `controls` | Olink's control samples on the plate; the checks leave them out |
 | `QC status` | Olink's own flag for each sample: PASS, WARN (use with care) or FAIL |
-| `below the LOD` | assays whose signal is mostly too low to tell apart from background noise |
-| `outliers` | samples whose overall level or spread lies far from all the others |
+| `below the LOD` | assays whose signal is too low to tell apart from background noise in more than 75% of the samples: a sign of data quality |
+| `outliers` | samples whose median or spread over all assays lies more than 3 SD from the others |
 
 A line appears only when there is something to report: duplicate sample IDs, bridge samples and
 control samples get a line of their own when your data has them.
 
 <figure class="sg-chart" markdown>
-<div class="sg-plot" data-src="../../assets/figures/example_npx_strip.json"><img src="../../assets/figures/example_npx_strip.svg" alt="Every NPX value per assay as a dot, with the detection limit as a red line" loading="lazy"></div>
-<figcaption markdown>`so.plot_npx_strip(data)`. Each dot is one sample's NPX value for one assay; the red line is the assay's detection limit (LOD). Hollow dots lie below it. IL13, IL4 and IL5 lie mostly below the LOD. Hover a dot for its value.</figcaption>
+<div class="sg-plot" data-src="../../assets/figures/example_npx_strip.json"><img src="../../assets/figures/example_npx_strip.svg" alt="Every NPX value per assay as a dot, with the detection limit as a red dot" loading="lazy"></div>
+<figcaption markdown>`so.plot_npx_strip(data)`. Each dot is one sample's NPX value for one assay; the red dot is the assay's detection limit (LOD). Hollow dots lie below it. Assays such as IL4, IL5 and IL13 lie mostly below the LOD. Hover a dot for its value.</figcaption>
 </figure>
 
 
@@ -68,12 +70,16 @@ control samples get a line of their own when your data has them.
     ```
 
     The report then adds two checks when they find something: assays far more often below the
-    LOD in one group than in another (keep these: being undetectable can itself be a signal),
-    and, with several plates, a group missing from a plate.
+    LOD in one group than in another, and, with several plates, a group missing from a plate.
+    On the example, one extra line:
+
+    ```text
+      below the LOD far more often in one 'group' group than another (by 30 percentage points or more): IL-17C - keep these: being undetectable in one group can itself be a signal
+    ```
 
     <figure class="sg-chart" markdown>
-    <div class="sg-plot" data-src="../../assets/figures/example_npx_strip_groups.json"><img src="../../assets/figures/example_npx_strip_groups.svg" alt="Every NPX value per assay, cases and controls side by side, with the detection limit in red" loading="lazy"></div>
-    <figcaption markdown>Cases and controls side by side. IL6, CXCL10, HGF and OSM read higher in cases.</figcaption>
+    <div class="sg-plot" data-src="../../assets/figures/example_npx_strip_groups.json"><img src="../../assets/figures/example_npx_strip_groups.svg" alt="Every NPX value per assay, cases and controls side by side, with the detection limit as a red dot" loading="lazy"></div>
+    <figcaption markdown>Cases and controls side by side. IL6, CXCL10, HGF and OSM read higher in cases; IL-17C is mostly detectable in cases.</figcaption>
     </figure>
 
 
@@ -84,12 +90,13 @@ clean = so.apply_qc(data)
 ```
 
 <div class="sg-example" markdown>
-<p class="tag">On the generated example file</p>
+<p class="tag">On the synthetic example file</p>
 
 ```text
 Quality steps applied
+  removed 8 control samples: 3 NEGATIVE_CONTROL, 3 PLATE_CONTROL, 2 SAMPLE_CONTROL
   removed 1 measurement (QC status FAIL): P20
-  kept: 39 samples, 24 assays
+  kept: 39 samples, 92 assays
 ```
 
 </div>
@@ -115,7 +122,11 @@ assay stays, and so does the outlier P07: those are your decisions.
     The report lists the removal. With several plates, `drop_samples={"P07": "Plate 1"}` removes
     it from that plate only.
 
-??? "How do I remove assays that are mostly below the LOD?"
+??? "Should I remove the assays that are mostly below the LOD?"
+
+    Usually not. Olink leaves the cutoff to each study and points out that some of the best
+    biomarkers are low proteins; assays without information drop out of the analysis anyway.
+    The report line is a sign of data quality. If your study needs it, the option is there:
 
     ```python
     clean = so.apply_qc(data, max_below_lod=0.75)    # below the LOD in more than 75%

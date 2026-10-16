@@ -1,12 +1,12 @@
 ---
 title: "prepare and example data: Olink data in one call"
-description: "prepare runs reading, quality control, bridging and sample metadata with the defaults in one call; example_file, example_data and example_samples give made-up data to try."
+description: "prepare runs reading, quality control, bridging and sample metadata with the defaults in one call; example_file, example_data and example_samples give synthetic data to try."
 ---
 
 # In one call
 
 `prepare` runs the usual route with each step's default choices and prints one short report.
-`example_file`, `example_data` and `example_samples` give generated example data (made-up values) to try everything on.
+`example_file`, `example_data` and `example_samples` give synthetic example data to try everything on.
 { .lede }
 
 ## `prepare`
@@ -56,22 +56,24 @@ clean = so.prepare([so.example_file(1), so.example_file(2)], so.example_samples(
 
 ```text
 Prepared data
-  read 2 files: 60 samples, 24 assays, 2 plates
+  read 2 files: 60 samples + 8 controls, 92 assays, 2 plates
+  quality control: removed 16 control samples: 6 NEGATIVE_CONTROL, 6 PLATE_CONTROL, 4 SAMPLE_CONTROL
   quality control: removed 1 measurement (QC status FAIL): P20
-  bridging: Plate 2 put on the scale of Plate 1 (24 assays adjusted, 12 bridge samples)
+  bridging: Plate 2 put on the scale of Plate 1 (92 assays adjusted, 12 bridge samples)
   sample metadata: matched: 59 of 59 sample IDs in the NPX data
-  result: 59 samples, 24 assays
+  result: 59 samples, 92 assays
   to look at (prepare leaves these to you):
-    outliers (median or spread over all assays more than 3 SD from the others; see plot_sample_qc): P07, P33
+    outliers: 2 of 72 measurements (P07, P33); see plot_sample_qc
+    below the LOD far more often in one 'group' group than another (by 30 percentage points or more): IL-17C - keep these: being undetectable in one group can itself be a signal
     bridge samples that shift differently from the others (a mix-up or a degraded tube?): P33
-    assays whose shift differs by more than 0.5 NPX between groups: IL4, IL8, IFN-gamma, TGF-alpha - ...
+    assays whose shift differs by more than 0.5 NPX between groups: CASP-8, uPA, AXIN1, IL13, IL5, EN-RAGE - ...
 ```
 
 ---
 
 ## `example_file`
 
-The path to a small, generated NPX file that comes with the package (made-up values). Read it like your own file.
+The path to a small, synthetic NPX file that comes with the package. Read it like your own file.
 
 ```python
 example_file(plate=1) -> str
@@ -82,8 +84,8 @@ example_file(plate=1) -> str
 | `plate` | int | `1` | `1` or `2`: the example has two plates, one file each |
 
 ```python
-data = so.read_npx(so.example_file())        # plate 1: 40 samples, 24 assays
-plate2 = so.read_npx(so.example_file(2))     # plate 2: 32 samples, 12 of them also on plate 1
+data = so.read_npx(so.example_file())        # plate 1: 40 samples + 8 controls, 92 assays
+plate2 = so.read_npx(so.example_file(2))     # plate 2: 32 samples + 8 controls; 12 also on plate 1
 ```
 
 ---
@@ -91,19 +93,22 @@ plate2 = so.read_npx(so.example_file(2))     # plate 2: 32 samples, 12 of them a
 ## `example_data`
 
 Both example plates in one table, in the [standard table](index.md#the-standard-table), as
-`read_npx` returns them. The values are invented and the same every time.
+`read_npx` returns them. The values are synthetic and the same every time.
 
 ```python
 example_data() -> pandas.DataFrame
 ```
 
-60 people (30 cases, 30 controls), 24 assays, two plates: P01–P40 on Plate 1, P29–P60 on
-Plate 2, so P29–P40 are bridge samples. Plate 2 reads higher, by a different amount per assay.
-Built in on purpose, so the checks have something to find:
+60 people (30 cases, 30 controls), 92 assays named after the Target 96 Inflammation panel, two
+plates: P01–P40 on Plate 1, P29–P60 on Plate 2, so P29–P40 are bridge samples. Each plate also
+holds the 8 controls of a Target 96 plate (3 negative, 3 plate and 2 sample controls), marked in
+`SampleType`. Plate 2 reads higher, by a different amount per assay. Built in on purpose, so the
+checks have something to find:
 
 - Plate 1: QC status WARN for P05 and FAIL for P20; P07 far too low on every assay (an outlier);
 - Plate 2: QC status WARN for P41; P33 far too low on every assay (a broken bridge sample);
-- three assays mostly below the LOD (IL13, IL4, IL5);
+- assays mostly below the LOD (such as IL4, IL5 and IL13), as on the real panel;
+- IL-17C detectable mostly in cases;
 - four assays higher in cases (IL6, CXCL10, HGF, OSM).
 
 ---
@@ -111,7 +116,7 @@ Built in on purpose, so the checks have something to find:
 ## `example_samples`
 
 The sample metadata that go with `example_data` and `example_file`: one row per person, with `sample_id`, `group`
-(`"case"` / `"control"`), `age` and `sex`. Made-up values.
+(`"case"` / `"control"`), `age` and `sex`. Synthetic values.
 
 ```python
 example_samples() -> pandas.DataFrame

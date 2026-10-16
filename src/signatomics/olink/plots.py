@@ -135,19 +135,22 @@ def _plot_below_lod_by_group(npx: pd.DataFrame, group: str, only_with_below: boo
 # ------------------------------------------------------------------------------------------
 
 def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, samples=None, on=None,
-                   proteins=None, per_row: int = 30, order: str = "name", show_ids: bool = False,
-                   seed: int = 0) -> go.Figure:
-    """Every measurement as a dot, per protein, groups side by side; the LOD as a red line.
+                   proteins=None, per_row: int = 48, order: str = "name", show_ids: bool = False,
+                   max_proteins: int = 96) -> go.Figure:
+    """Every measurement as a dot, per protein, groups side by side; the LOD as a red dot.
 
-    Values below the detection limit are drawn as **hollow** dots, so it is visible how much of
-    a protein's signal is unreliable. Long protein lists are split into rows of ``per_row``.
+    The dots of a protein lie on one vertical line (half transparent, so dense parts look
+    darker), which keeps the chart narrow for many proteins. Values below the detection limit
+    are drawn as **hollow** dots. Long protein lists are split into rows of ``per_row``.
 
     Parameters
     ----------
     group : sample-information column for colours (at most 3 groups), e.g. ``"diabetes"``.
-    proteins : list of proteins (Assay names) to show; default all.
+    proteins : list of proteins (Assay names) to show. Default: all, or for panels with more
+        than ``max_proteins`` the 48 with the most values below the LOD (the title says so).
     order : ``"name"`` (alphabetical) or ``"below_lod"`` (most below LOD first).
     show_ids : include sample IDs in the hover text.
+    max_proteins : above this many proteins, show a selection unless ``proteins`` is given.
     samples, on : your sample metadata and its ID column, when ``group`` is not yet a column of
         ``npx`` (only looked up, as in ``qc_report``).
     """
@@ -159,6 +162,15 @@ def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, samples=None,
         df = df[df[label].isin(proteins)]
     has_lod = "LOD" in df.columns
     df = df.assign(_below=(df[value] < df["LOD"]) if has_lod else False)
+    note = ""
+    n_all = df[label].nunique()
+    if proteins is None and n_all > max_proteins:
+        share = df.groupby(label)["_below"].mean() if has_lod else df.groupby(label)[value].median()
+        keep = share.sort_values(ascending=not has_lod).index[:48]
+        df = df[df[label].isin(keep)]
+        note = (f"48 of {n_all} proteins: " + ("the most values below the LOD" if has_lod
+                                               else "the lowest medians")
+                + "; choose others with proteins=[...]")
     if order == "below_lod" and has_lod:
         names = df.groupby(label)["_below"].mean().sort_values(ascending=False).index.tolist()
     else:
@@ -172,7 +184,6 @@ def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, samples=None,
     n_rows = int(np.ceil(len(names) / per_row))
     size = int(np.ceil(len(names) / n_rows))            # spread proteins evenly over the rows
     rows = [names[i:i + size] for i in range(0, len(names), size)]
-    rng = np.random.default_rng(seed)
 
     fig = make_subplots(rows=len(rows), cols=1, vertical_spacing=0.16 / max(len(rows), 1))
     for r, chunk in enumerate(rows, start=1):
@@ -181,31 +192,34 @@ def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, samples=None,
         for gi, g in enumerate(groups):
             gsub = sub if g is None else sub[sub[group] == g]
             offset = (gi - (len(groups) - 1) / 2) * width
-            x = gsub[label].map(pos) + offset + rng.uniform(-width * 0.35, width * 0.35, len(gsub))
+            x = gsub[label].map(pos) + offset                    # stacked on one line
             for below in (False, True):
                 part = gsub[gsub["_below"] == below]
                 if part.empty:
                     continue
                 xs = x[part.index]
                 name = ("all samples" if g is None else str(g)) + (" (below LOD)" if below else "")
-                hover = (f"<b>%{{customdata[0]}}</b><br>{value}: %{{y:.2f}}"
+                # hover data: the protein name only (and the sample ID with show_ids), to keep it small
+                first = "%{customdata[0]}" if show_ids else "%{customdata}"
+                hover = (f"<b>{first}</b><br>{value}: %{{y:.2f}}"
                          + ("" if g is None else f"<br>{group}: {g}")
                          + ("<br>below LOD" if below else "")
                          + ("<br>sample: %{customdata[1]}" if show_ids else "") + "<extra></extra>")
-                custom = np.column_stack([part[label].astype(str),
-                                          part["SampleID"].astype(str) if show_ids else [""] * len(part)])
+                custom = (np.column_stack([part[label].astype(str), part["SampleID"].astype(str)])
+                          if show_ids else part[label].astype(str).to_numpy())
                 fig.add_scatter(
                     x=xs, y=part[value], mode="markers", name=name, legendgroup=name,
                     showlegend=(r == 1), customdata=custom, hovertemplate=hover,
                     marker=dict(size=6, color=colors[g] if not below else "rgba(0,0,0,0)",
-                                line=dict(color=colors[g], width=1.2), opacity=0.8),
+                                line=dict(color=colors[g], width=1.1), opacity=0.45),
                     row=r, col=1)
         if has_lod:
             lod = sub.groupby(label)["LOD"].agg(["median", "min", "max"]).reindex(chunk)
             fig.add_scatter(
                 x=[pos[p] for p in chunk], y=lod["median"], mode="markers",
                 name="detection limit (LOD)", legendgroup="lod", showlegend=(r == 1),
-                marker=dict(symbol="line-ew", size=26, line=dict(color=CRITICAL, width=2.5)),
+                marker=dict(symbol="circle", size=8, color=CRITICAL,
+                            line=dict(color="white", width=1)),
                 customdata=np.column_stack([chunk, lod["min"], lod["max"]]),
                 hovertemplate="<b>%{customdata[0]}</b><br>LOD %{y:.2f}"
                               "<br>(per plate %{customdata[1]:.2f} – %{customdata[2]:.2f})<extra></extra>",
@@ -214,8 +228,10 @@ def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, samples=None,
                          range=[-0.6, len(chunk) - 0.4], row=r, col=1, showgrid=False)
         fig.update_yaxes(title=value, row=r, col=1)
 
-    subtitle = "red line = detection limit (LOD); hollow dots = below the LOD"
-    fig.update_layout(height=430 * len(rows) + 90, width=max(700, 34 * min(per_row, len(names)) + 160),
+    subtitle = (("red dot = detection limit (LOD); hollow dots = below the LOD" if has_lod
+                 else "no LOD in the data") + (f"<br>{note}" if note else ""))
+    step = 14 + 8 * len(groups)                                    # pixels per protein
+    fig.update_layout(height=380 * len(rows) + 90, width=max(700, step * min(per_row, len(names)) + 160),
                       margin=dict(l=70, r=30, t=120, b=90))
     return _style(fig, f"{value} per protein" + (f" by {group}" if group else ""), subtitle)
 
@@ -545,4 +561,83 @@ def plot_bridge_scatter(npx: pd.DataFrame, proteins, *, batch: str = "PlateID", 
                       margin=dict(l=70, r=30, t=120, b=120),
                       legend=dict(orientation="h", yanchor="top", y=-0.1 / rows - 0.05,
                                   xanchor="left", x=0))
+    return fig
+
+
+def plot_bridge_bland_altman(npx: pd.DataFrame, proteins=None, *, batch: str = "PlateID",
+                             reference=None, exclude_warnings: bool = True,
+                             show_ids: bool = False, cols: int = 3) -> go.Figure:
+    """Bland-Altman plot of the bridge samples: how much the two plates differ.
+
+    Each point is one bridge sample (and assay): the mean of its two measurements (x) against
+    their difference, other plate minus reference (y). The solid line is the median difference:
+    the plate shift that bridging removes. The dotted lines enclose the middle 95% of the
+    differences (2.5th to 97.5th percentile): the limits of agreement in their robust form
+    (Bland & Altman 1999), so that one broken tube does not move them. Before bridging the median
+    lies away from 0; after bridging it lies on 0.
+
+    proteins : None for all assays in one panel, or 1 to 12 proteins (Assay names), one panel each.
+    """
+    from .bridge import _bridge_differences
+
+    d = _bridge_differences(npx, batch=batch, reference=reference, exclude_warnings=exclude_warnings)
+    ref = d.attrs["reference"]
+    label = "Assay" if "Assay" in d.columns else _protein_col(d)
+    if proteins is None:
+        panels = [("all assays", d)]
+    else:
+        proteins = [proteins] if isinstance(proteins, str) else list(proteins)
+        if not 1 <= len(proteins) <= 12:
+            raise ValueError("Give 1 to 12 proteins, or proteins=None for all assays together.")
+        missing = [p for p in proteins if p not in set(d[label])]
+        if missing:
+            raise ValueError(f"Not found among the bridging-sample proteins: {', '.join(missing)}")
+        panels = [(p, d[d[label] == p]) for p in proteins]
+    d = d.assign(mean=(d["NPX_reference"] + d["NPX_plate"]) / 2)
+    plates = list(pd.unique(d["plate"]))
+    style = _plate_style([ref] + plates)
+    ncol = min(cols, len(panels))
+    rows = int(np.ceil(len(panels) / ncol))
+    fig = make_subplots(rows=rows, cols=ncol,
+                        subplot_titles=[name for name, _ in panels] if proteins is not None else None,
+                        horizontal_spacing=0.08, vertical_spacing=0.25 / rows)
+    for k, (name, dp) in enumerate(panels):
+        r, c = k // ncol + 1, k % ncol + 1
+        dp = d.loc[dp.index].dropna(subset=["difference"])
+        fig.add_hline(y=0, line=dict(color=INK_2, width=1, dash="dash"), row=r, col=c)
+        for p in plates:
+            pp = dp[dp["plate"] == p]
+            if pp.empty:
+                continue
+            colour, symbol = style[p]
+            custom = (np.column_stack([pp[label].astype(str), pp["sample"].astype(str)]) if show_ids
+                      else pp[label].astype(str).to_numpy())
+            first = "%{customdata[0]}" if show_ids else "%{customdata}"
+            fig.add_scatter(
+                x=pp["mean"], y=pp["difference"], mode="markers", name=f"{p} minus reference",
+                legendgroup=str(p), showlegend=(k == 0), customdata=custom,
+                marker=dict(size=6 if proteins is None else 8, color=colour, symbol=symbol,
+                            opacity=0.55 if proteins is None else 0.9,
+                            line=dict(color=SURFACE, width=0.8)),
+                hovertemplate=(f"<b>{first}</b><br>mean %{{x:.2f}}<br>difference %{{y:+.2f}}"
+                               + ("<br>sample: %{customdata[1]}" if show_ids else "")
+                               + "<extra></extra>"),
+                row=r, col=c)
+            bias = pp["difference"].median()
+            fig.add_hline(y=bias, line=dict(color=colour, width=2), row=r, col=c,
+                          annotation_text=f"median {bias:+.2f}", annotation_position="top right",
+                          annotation_font=dict(size=11, color=colour))
+            for limit in pp["difference"].quantile([0.025, 0.975]):
+                fig.add_hline(y=limit, line=dict(color=colour, width=1, dash="dot"), row=r, col=c,
+                              annotation_text=f"{limit:+.2f}", annotation_position="bottom right",
+                              annotation_font=dict(size=10, color=colour))
+        fig.update_xaxes(title="mean of the two plates (NPX)" if r == rows else None, row=r, col=c)
+        fig.update_yaxes(title="difference (NPX)" if c == 1 else None, row=r, col=c)
+    fig = _style(fig, "Bland-Altman: how much the plates differ",
+                 f"bridge samples; difference = other plate minus reference ({ref}); "
+                 "solid = median difference, dotted = middle 95% of the differences")
+    fig.update_layout(height=(420 if proteins is None else 330 * rows + 90) + 120,
+                      width=760 if proteins is None else 330 * ncol + 120,
+                      margin=dict(l=70, r=40, t=120, b=120),
+                      legend=dict(orientation="h", yanchor="top", y=-0.18 / rows, xanchor="left", x=0))
     return fig

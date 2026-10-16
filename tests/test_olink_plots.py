@@ -77,6 +77,21 @@ def test_sample_qc_finds_the_abnormal_sample():
     rep = qc_report(df, outlier_sd=3, verbose=False)
     table = rep.samples
     assert table.loc[table["outlier"], "SampleID"].tolist() == ["S07"]
-    assert "outliers (" in str(rep) and "S07" in str(rep)
+    assert "outliers: 1 of 60 samples (S07)" in str(rep)
     fig = plot_sample_qc(df, sd=3)
     assert any(t.name and "outlier" in t.name for t in fig.data)
+
+
+def test_bland_altman_shows_the_plate_shift_and_its_removal():
+    import plotly.graph_objects as go
+
+    from signatomics.olink import apply_qc, bridge_plates, example_data, plot_bridge_bland_altman
+    clean = apply_qc(example_data(), verbose=False)
+    before = plot_bridge_bland_altman(clean)
+    after = plot_bridge_bland_altman(bridge_plates(clean, verbose=False))
+    assert isinstance(before, go.Figure) and len(before.data) == 1
+
+    def bias(fig):
+        return float([a.text for a in fig.layout.annotations if a.text.startswith("median")][0].split()[1])
+    assert bias(before) > 0.3 and abs(bias(after)) < 0.1
+    assert len(plot_bridge_bland_altman(clean, ["IL6", "HGF"]).data) == 2

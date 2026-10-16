@@ -34,6 +34,15 @@ def _measurement_keys(df: pd.DataFrame) -> list[str]:
     return [c for c in ("SampleID", "Index", "WellID", "Panel", "PlateID") if c in df.columns]
 
 
+def _count_text(n_meas: int, n_ids: int, n_panels: int) -> str:
+    """'40 samples', '111 samples on 4 panels' (Explore: one measurement per sample and panel)."""
+    if n_meas == n_ids:
+        return f"{n_ids} samples"
+    if n_panels > 1 and n_meas == n_ids * n_panels:
+        return f"{n_ids} samples on {n_panels} panels"
+    return f"{n_meas} measurements of {n_ids} samples" + (f" on {n_panels} panels" if n_panels > 1 else "")
+
+
 def _measure_col(df: pd.DataFrame) -> str | None:
     """Column that tells two measurements of the same sample on the same plate apart."""
     return next((c for c in ("Index", "WellID") if c in df.columns), None)
@@ -53,11 +62,15 @@ def _qc_status(qc: pd.Series) -> pd.Series:
     return status.where(qc.notna())
 
 
+# sample IDs that look like Olink controls, for files without a SampleType column
+CONTROL_ID = r"(?i)ctrl|control|\bneg\b|negative|\bipc\b|blank"
+
+
 def _control_masks(df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
     """Rows of control samples, and rows of control assays."""
     no = pd.Series(False, index=df.index)
-    samples = (df["SampleType"].astype("string").str.upper().ne("SAMPLE") & df["SampleType"].notna()
-               if "SampleType" in df.columns else no)
+    from .reader import _is_control_type
+    samples = _is_control_type(df["SampleType"]) if "SampleType" in df.columns else no
     assays = (df["AssayType"].astype("string").str.lower().ne("assay") & df["AssayType"].notna()
               if "AssayType" in df.columns else no)
     return samples.fillna(False).astype(bool), assays.fillna(False).astype(bool)
@@ -170,7 +183,7 @@ def _with_groups(npx: pd.DataFrame, samples, on) -> pd.DataFrame:
 
 
 def qc_report(npx: pd.DataFrame, *, group: str | None = None, samples=None, on: str | None = None,
-              max_below_lod: float = 0.5, outlier_sd: float = 3.0, show_ids: bool = True,
+              max_below_lod: float = 0.75, outlier_sd: float = 3.0, show_ids: bool = True,
               verbose: bool = True) -> QCReport:
     """Look at data quality without changing anything.
 
@@ -187,7 +200,9 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, samples=None, on: 
         missing from a plate; assays detectable in one group but not another).
     samples, on : your sample metadata (a table or a path) and its ID column, when ``group`` is not
         yet a column of ``npx``. They are only looked up; the table you get back is unchanged.
-    max_below_lod : share (0-1) above which a protein is reported as "mostly below LOD".
+    max_below_lod : share (0-1) above which an assay is reported as "mostly below the LOD"
+        (default 0.75). Only reported, as an indication of data quality: the assays stay in.
+        Olink leaves the cutoff to each study, and low proteins can be good biomarkers.
     outlier_sd : a measurement whose median or IQR over all proteins is more than this many
         standard deviations from the others is reported as an outlier (``plot_sample_qc``).
     show_ids : list sample IDs in the report; ``False`` gives counts only (for sharing).
@@ -205,11 +220,20 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, samples=None, on: 
         n_meas = ctrl.groupby(_measurement_keys(ctrl), dropna=False).ngroups if len(ctrl) else 0
         kinds = (ctrl.drop_duplicates(_measurement_keys(ctrl))["SampleType"].value_counts()
                  if len(ctrl) else pd.Series(dtype=int))
+        n_assays = npx.loc[ctrl_assays, protein].nunique()
         rep.lines.append(
-            f"control samples and internal control assays (left out of everything below; apply_qc "
-            f"removes them): {n_meas} control sample measurements" + (f" ({', '.join(f'{n} {k}' for k, n in kinds.items())})" if len(kinds) else "")
-            + f", {npx.loc[ctrl_assays, protein].nunique()} internal control assays")
+            f"controls (left out of the checks below; apply_qc removes them): "
+            f"{n_meas} control sample{'s' if n_meas != 1 else ''}"
+            + (f" ({', '.join(f'{n} {k}' for k, n in kinds.items())})" if len(kinds) else "")
+            + (f", {n_assays} control assay{'s' if n_assays != 1 else ''}" if n_assays else ""))
     df = npx[~(ctrl_samples | ctrl_assays)]
+    if "SampleType" not in npx.columns:
+        looks = df.loc[df["SampleID"].astype("string").str.contains(CONTROL_ID, na=False), "SampleID"]
+        if len(looks):
+            rep.lines.append(
+                f"WARNING sample IDs that look like controls (the file has no SampleType column to "
+                f"confirm): {_ids(looks, show_ids)} - check them; apply_qc(drop_samples=[...]) "
+                f"removes them")
 
     no_id = df["SampleID"].isna()
     if no_id.any():
@@ -218,11 +242,14 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, samples=None, on: 
     m = _measurement_table(df)
     rep.measurements = m
     n_ids = df["SampleID"].nunique()
-    samples = f"{n_ids} samples" if len(m) == n_ids else f"{len(m)} measurements of {n_ids} samples"
+    n_panels = df["Panel"].nunique() if "Panel" in df.columns else 1
+    samples = _count_text(len(m), n_ids, n_panels)
     rep.lines.append(f"data: {samples}, {df[protein].nunique()} assays"
                      + (f", {df['PlateID'].nunique()} plate{'s' if df['PlateID'].nunique() != 1 else ''}" if "PlateID" in df else ""))
     if "qc_warning" in m:
-        rep.lines.append(f"QC status: {int(len(m) - m['warning'].sum() - m['fail'].sum())} PASS, "
+        rep.lines.append(("QC status (per sample and panel): " if n_panels > 1
+                          else "QC status: ")
+                         + f"{int(len(m) - m['warning'].sum() - m['fail'].sum())} PASS, "
                          f"{int(m['warning'].sum())} WARN, {int(m['fail'].sum())} FAIL")
     else:
         rep.lines.append("no QC status column: QC status not checked")
@@ -254,8 +281,8 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, samples=None, on: 
             p = p.merge(df[[protein, "Assay"]].drop_duplicates(protein), on=protein, how="left")
         rep.proteins = p
         mostly = p[p["below_lod"] > max_below_lod]
-        rep.lines.append(f"assays below the LOD in more than {max_below_lod:.0%} of the measurements: "
-                         f"{len(mostly)} of {len(p)}")
+        rep.lines.append(f"assays below the LOD in more than {max_below_lod:.0%} of the samples: "
+                         f"{len(mostly)} of {len(p)} (a sign of data quality; they stay in)")
     else:
         rep.lines.append("no LOD column: LOD check skipped")
 
@@ -263,9 +290,10 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, samples=None, on: 
     rep.samples = s
     odd = s[s["outlier"]]
     if len(odd):
-        rep.lines.append(f"outliers (median or spread over all assays more than {outlier_sd:g} SD "
-                         f"from the others; see plot_sample_qc): "
-                         f"{_ids(odd['SampleID'], show_ids)}")
+        unit = ("sample-panel measurements" if n_panels > 1
+                else "samples" if len(m) == n_ids else "measurements")
+        names = ", ".join(map(str, pd.unique(odd["SampleID"]))) if show_ids else "IDs hidden"
+        rep.lines.append(f"outliers: {len(odd)} of {len(s)} {unit} ({names}); see plot_sample_qc")
     else:
         rep.lines.append(f"outliers: none (median and spread over all assays within {outlier_sd:g} SD)")
 
@@ -360,7 +388,7 @@ def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_fail: bool =
         if ctrl_samples.any():
             ctrl = df[ctrl_samples].drop_duplicates(keys)
             kinds = ctrl["SampleType"].value_counts()
-            done.append(f"removed {len(ctrl)} control sample measurements: "
+            done.append(f"removed {len(ctrl)} control samples: "
                         + ", ".join(f"{n} {k}" for k, n in kinds.items()))
         if ctrl_assays.any():
             done.append(f"removed {df.loc[ctrl_assays, protein].nunique()} internal control assays: "
@@ -426,7 +454,7 @@ def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_fail: bool =
 
     kept = df.groupby(keys, dropna=False).ngroups
     n_ids = df["SampleID"].nunique()
-    kept_txt = f"{n_ids} samples" if kept == n_ids else f"{kept} measurements of {n_ids} samples"
+    kept_txt = _count_text(kept, n_ids, df["Panel"].nunique() if "Panel" in df.columns else 1)
     done.append(f"kept: {kept_txt}, {df[protein].nunique()} assays")
     df = df.reset_index(drop=True)
     df.attrs = dict(npx.attrs)
