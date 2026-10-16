@@ -223,8 +223,8 @@ Arguments as in the [shared arguments](#shared-arguments). At most 3 plates besi
 
 ### `plot_bridge_bland_altman`
 
-A Bland-Altman plot of the bridge samples: how much the plates differ, before (or after)
-bridging. Each point is one bridge sample on one assay: the mean of its two measurements (x)
+Bland-Altman plots of the bridge samples, one panel per protein: how much the plates differ,
+before (or after) bridging. Each point is one bridge sample: the mean of its two measurements (x)
 against their difference, other plate minus reference (y).
 
 ```python
@@ -234,19 +234,20 @@ plot_bridge_bland_altman(npx, proteins=None, *, batch="PlateID", reference=None,
 
 | Argument | Default | Meaning |
 |---|---|---|
-| `proteins` | `None` | `None`: all assays in one panel; or 1 to 12 proteins, one panel each |
+| `proteins` | `None` | 1 to 12 proteins, one panel each. Default: three, chosen from the data: the largest shift up, about none (among well-measured assays), the largest shift down |
 | `show_ids` | `False` | sample IDs in the hover text |
 
 The solid line is the **median difference**: the plate shift that bridging removes. The dotted
-lines enclose the middle 95% of the differences (2.5th to 97.5th percentile): the limits of
-agreement in their robust form (Bland & Altman 1999), so one broken tube moves them less than
-the classic mean ± 1.96 SD. After bridging the median lies on 0.
+lines are the limits of agreement in a robust form, median ± 1.96 robust SD (1.4826 × the median
+absolute deviation) instead of the classic mean ± 1.96 SD: with about a dozen bridge samples, one
+broken tube would otherwise widen them. That tube then lies outside the limits. After bridging
+the median lies on 0.
 
 **Errors.** `ValueError` for more than 12 proteins, or proteins without bridge samples.
 
 <figure class="sg-chart" markdown>
-<div class="sg-plot" data-src="../../assets/figures/bridge_bland_altman.json"><img src="../../assets/figures/bridge_bland_altman.svg" alt="Bland-Altman plot of the PAD000040 bridge samples" loading="lazy"></div>
-<figcaption markdown>`plot_bridge_bland_altman(clean)` on PAD000040: plate 2 reads about 0.5 NPX higher (the solid line). The points far below are sample 249, the broken tube.</figcaption>
+<div class="sg-plot" data-src="../../assets/figures/bridge_bland_altman.json"><img src="../../assets/figures/bridge_bland_altman.svg" alt="Bland-Altman plots of the PAD000040 bridge samples for three proteins" loading="lazy"></div>
+<figcaption markdown>`plot_bridge_bland_altman(clean)` on PAD000040: three proteins whose plate shift differs (the solid lines). The point far below in each panel is sample 249, the broken tube.</figcaption>
 </figure>
 
 ### `plot_bridge_scatter`

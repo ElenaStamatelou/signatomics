@@ -87,11 +87,12 @@ def test_bland_altman_shows_the_plate_shift_and_its_removal():
 
     from signatomics.olink import apply_qc, bridge_plates, example_data, plot_bridge_bland_altman
     clean = apply_qc(example_data(), verbose=False)
-    before = plot_bridge_bland_altman(clean)
-    after = plot_bridge_bland_altman(bridge_plates(clean, verbose=False))
-    assert isinstance(before, go.Figure) and len(before.data) == 1
+    before = plot_bridge_bland_altman(clean)                     # three proteins, chosen from the data
+    after = plot_bridge_bland_altman(bridge_plates(clean, verbose=False), ["IL6"])
+    assert isinstance(before, go.Figure) and len(before.data) == 3
 
-    def bias(fig):
-        return float([a.text for a in fig.layout.annotations if a.text.startswith("median")][0].split()[1])
-    assert bias(before) > 0.3 and abs(bias(after)) < 0.1
-    assert len(plot_bridge_bland_altman(clean, ["IL6", "HGF"]).data) == 2
+    def medians(fig):
+        return [float(a.text.split()[1]) for a in fig.layout.annotations if a.text.startswith("median")]
+    up, none, down = medians(before)
+    assert up > 0.5 and abs(none) < 0.2 and down < -0.5
+    assert abs(medians(after)[0]) < 0.05

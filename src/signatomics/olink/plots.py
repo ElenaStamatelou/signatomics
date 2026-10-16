@@ -569,14 +569,16 @@ def plot_bridge_bland_altman(npx: pd.DataFrame, proteins=None, *, batch: str = "
                              show_ids: bool = False, cols: int = 3) -> go.Figure:
     """Bland-Altman plot of the bridge samples: how much the two plates differ.
 
-    Each point is one bridge sample (and assay): the mean of its two measurements (x) against
-    their difference, other plate minus reference (y). The solid line is the median difference:
-    the plate shift that bridging removes. The dotted lines enclose the middle 95% of the
-    differences (2.5th to 97.5th percentile): the limits of agreement in their robust form
-    (Bland & Altman 1999), so that one broken tube does not move them. Before bridging the median
-    lies away from 0; after bridging it lies on 0.
+    One panel per protein (a Bland-Altman plot compares two measurements of the same quantity).
+    Each point is one bridge sample: the mean of its two measurements (x) against their
+    difference, other plate minus reference (y). The solid line is the median difference:
+    the plate shift that bridging removes. The dotted lines are the limits of agreement in a
+    robust form, median ± 1.96 robust SD (1.4826 × the median absolute deviation), so one broken
+    tube does not widen them and shows up outside them. Before bridging the median lies away from
+    0; after bridging it lies on 0.
 
-    proteins : None for all assays in one panel, or 1 to 12 proteins (Assay names), one panel each.
+    proteins : 1 to 12 proteins (Assay names). Default: three, chosen from the data: the largest
+        shift up, about no shift, and the largest shift down.
     """
     from .bridge import _bridge_differences
 
@@ -584,22 +586,25 @@ def plot_bridge_bland_altman(npx: pd.DataFrame, proteins=None, *, batch: str = "
     ref = d.attrs["reference"]
     label = "Assay" if "Assay" in d.columns else _protein_col(d)
     if proteins is None:
-        panels = [("all assays", d)]
-    else:
-        proteins = [proteins] if isinstance(proteins, str) else list(proteins)
-        if not 1 <= len(proteins) <= 12:
-            raise ValueError("Give 1 to 12 proteins, or proteins=None for all assays together.")
-        missing = [p for p in proteins if p not in set(d[label])]
-        if missing:
-            raise ValueError(f"Not found among the bridging-sample proteins: {', '.join(missing)}")
-        panels = [(p, d[d[label] == p]) for p in proteins]
+        shift = d.groupby(label)["difference"].median().dropna().sort_values()
+        # "about no shift" among well-measured assays (low ones are mostly noise)
+        level = d.groupby(label)[["NPX_reference", "NPX_plate"]].median().mean(axis=1)
+        steady = shift[level.reindex(shift.index) >= level.quantile(0.25)]
+        proteins = list(dict.fromkeys([shift.index[-1], steady.abs().idxmin(), shift.index[0]]))
+    proteins = [proteins] if isinstance(proteins, str) else list(proteins)
+    if not 1 <= len(proteins) <= 12:
+        raise ValueError("Give 1 to 12 proteins.")
+    missing = [p for p in proteins if p not in set(d[label])]
+    if missing:
+        raise ValueError(f"Not found among the bridging-sample proteins: {', '.join(missing)}")
+    panels = [(p, d[d[label] == p]) for p in proteins]
     d = d.assign(mean=(d["NPX_reference"] + d["NPX_plate"]) / 2)
     plates = list(pd.unique(d["plate"]))
     style = _plate_style([ref] + plates)
     ncol = min(cols, len(panels))
     rows = int(np.ceil(len(panels) / ncol))
     fig = make_subplots(rows=rows, cols=ncol,
-                        subplot_titles=[name for name, _ in panels] if proteins is not None else None,
+                        subplot_titles=[name for name, _ in panels],
                         horizontal_spacing=0.08, vertical_spacing=0.25 / rows)
     for k, (name, dp) in enumerate(panels):
         r, c = k // ncol + 1, k % ncol + 1
@@ -610,34 +615,30 @@ def plot_bridge_bland_altman(npx: pd.DataFrame, proteins=None, *, batch: str = "
             if pp.empty:
                 continue
             colour, symbol = style[p]
-            custom = (np.column_stack([pp[label].astype(str), pp["sample"].astype(str)]) if show_ids
-                      else pp[label].astype(str).to_numpy())
-            first = "%{customdata[0]}" if show_ids else "%{customdata}"
             fig.add_scatter(
                 x=pp["mean"], y=pp["difference"], mode="markers", name=f"{p} minus reference",
-                legendgroup=str(p), showlegend=(k == 0), customdata=custom,
-                marker=dict(size=6 if proteins is None else 8, color=colour, symbol=symbol,
-                            opacity=0.55 if proteins is None else 0.9,
-                            line=dict(color=SURFACE, width=0.8)),
-                hovertemplate=(f"<b>{first}</b><br>mean %{{x:.2f}}<br>difference %{{y:+.2f}}"
-                               + ("<br>sample: %{customdata[1]}" if show_ids else "")
+                legendgroup=str(p), showlegend=(k == 0),
+                customdata=pp["sample"].astype(str) if show_ids else None,
+                marker=dict(size=8, color=colour, symbol=symbol, line=dict(color=SURFACE, width=1)),
+                hovertemplate=("mean %{x:.2f}<br>difference %{y:+.2f}"
+                               + ("<br>sample: %{customdata}" if show_ids else "")
                                + "<extra></extra>"),
                 row=r, col=c)
             bias = pp["difference"].median()
+            spread = 1.96 * 1.4826 * (pp["difference"] - bias).abs().median()
             fig.add_hline(y=bias, line=dict(color=colour, width=2), row=r, col=c,
-                          annotation_text=f"median {bias:+.2f}", annotation_position="top right",
-                          annotation_font=dict(size=11, color=colour))
-            for limit in pp["difference"].quantile([0.025, 0.975]):
+                          annotation_text=f"median {round(bias, 2) + 0.0:+.2f}",   # + 0.0: no "-0.00"
+                          annotation_position="top right", annotation_font=dict(size=11, color=colour))
+            for limit, where in ((bias + spread, "top left"), (bias - spread, "bottom left")):
                 fig.add_hline(y=limit, line=dict(color=colour, width=1, dash="dot"), row=r, col=c,
-                              annotation_text=f"{limit:+.2f}", annotation_position="bottom right",
+                              annotation_text=f"{round(limit, 2) + 0.0:+.2f}", annotation_position=where,
                               annotation_font=dict(size=10, color=colour))
         fig.update_xaxes(title="mean of the two plates (NPX)" if r == rows else None, row=r, col=c)
         fig.update_yaxes(title="difference (NPX)" if c == 1 else None, row=r, col=c)
     fig = _style(fig, "Bland-Altman: how much the plates differ",
                  f"bridge samples; difference = other plate minus reference ({ref}); "
-                 "solid = median difference, dotted = middle 95% of the differences")
-    fig.update_layout(height=(420 if proteins is None else 330 * rows + 90) + 120,
-                      width=760 if proteins is None else 330 * ncol + 120,
+                 "solid = median difference, dotted = median ± 1.96 robust SD")
+    fig.update_layout(height=330 * rows + 210, width=330 * ncol + 120,
                       margin=dict(l=70, r=40, t=120, b=120),
                       legend=dict(orientation="h", yanchor="top", y=-0.18 / rows, xanchor="left", x=0))
     return fig

@@ -46,8 +46,8 @@ Bridging check
 </div>
 
 <figure class="sg-chart" markdown>
-<div class="sg-plot" data-src="../../assets/figures/example_bridge_bland_altman.json"><img src="../../assets/figures/example_bridge_bland_altman.svg" alt="Bland-Altman plot of the bridge samples: difference between the plates against their mean" loading="lazy"></div>
-<figcaption markdown>`so.plot_bridge_bland_altman(clean)`: how much the plates differ, before bridging. Each point is one bridge sample on one assay: the mean of its two measurements (left to right) and the difference, Plate 2 minus Plate 1 (bottom to top). The solid line is the median difference, +0.48 NPX: the shift that bridging removes. The dotted lines enclose the middle 95% of the differences. The band far below is P33, the broken tube, on every assay. Hover a point for its assay.</figcaption>
+<div class="sg-plot" data-src="../../assets/figures/example_bridge_bland_altman.json"><img src="../../assets/figures/example_bridge_bland_altman.svg" alt="Bland-Altman plots of the bridge samples for three proteins" loading="lazy"></div>
+<figcaption markdown>`so.plot_bridge_bland_altman(clean)`: how much the plates differ, before bridging, for three proteins chosen from the data (the largest shift up, about none, the largest shift down). Each point is one bridge sample: the mean of its two measurements (left to right) and the difference, Plate 2 minus Plate 1 (bottom to top). The solid line is the median difference: the shift that bridging removes, different for each protein. Between the dotted lines lie the usual differences (median ± 1.96 robust SD). The point far below in each panel is P33, the broken tube.</figcaption>
 </figure>
 
 
@@ -70,12 +70,6 @@ Bridging report
 The **adjustment factor** of an assay is the median of its bridge samples' differences between
 the two plates, as in Olink's bridge normalization. The median keeps one broken tube, like P33,
 from pulling it.
-
-<figure class="sg-chart" markdown>
-<div class="sg-plot" data-src="../../assets/figures/example_bridge_scatter.json"><img src="../../assets/figures/example_bridge_scatter.svg" alt="Bridge samples: NPX on Plate 1 against Plate 2 for IL6, CCL4 and HGF" loading="lazy"></div>
-<figcaption markdown>`so.plot_bridge_scatter(clean, ["IL6", "CCL4", "HGF"])`. Each dot is one bridge sample: its NPX on Plate 1 (left to right) and on Plate 2 (bottom to top). On the dashed line both plates agree; the dots lie above it because Plate 2 reads higher. The dot far below in every panel is P33.</figcaption>
-</figure>
-
 
 <figure class="sg-chart" markdown>
 <div class="sg-plot" data-src="../../assets/figures/example_bridge_pca.json"><img src="../../assets/figures/example_bridge_pca.svg" alt="PCA of the bridge samples before and after bridging, coloured by plate" loading="lazy"></div>

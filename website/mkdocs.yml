@@ -37,7 +37,7 @@ theme:
     - navigation.sections
     - navigation.indexes
     - navigation.top
-    - navigation.instant
+    # navigation.instant left out: it kept the old page after a click (clashes with the charts)
     - toc.follow
     - search.suggest
     - search.highlight
