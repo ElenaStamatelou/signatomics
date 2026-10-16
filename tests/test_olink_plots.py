@@ -96,3 +96,26 @@ def test_bland_altman_shows_the_plate_shift_and_its_removal():
     up, none, down = medians(before)
     assert up > 0.5 and abs(none) < 0.2 and down < -0.5
     assert abs(medians(after)[0]) < 0.05
+
+
+def test_every_chart_follows_the_one_style():
+    """All charts: interactive Plotly figures, a plain title, a subtitle in parts (" · "), the
+    legend above the plot, and Olink's words (assay, bridge samples)."""
+    import plotly.graph_objects as go
+
+    import signatomics.olink as so
+    s = dict(samples=so.example_samples(), on="sample_id")
+    one = so.read_npx(so.example_file(), verbose=False)
+    both = so.apply_qc(so.example_data(), verbose=False)
+    charts = [so.plot_below_lod(one), so.plot_below_lod(one, group="group", **s),
+              so.plot_npx_strip(one), so.plot_group_by_plate(so.example_data(), "group", **s),
+              so.plot_sample_qc(both), so.plot_bridge_shift(both), so.plot_bridge_scatter(both, ["IL6"]),
+              so.plot_bridge_pca(both, so.bridge_plates(both, verbose=False)),
+              so.plot_bridge_bland_altman(both)]
+    for fig in charts:
+        assert isinstance(fig, go.Figure)
+        title, _, subtitle = fig.layout.title.text.partition("<br>")
+        assert ":" not in title and "—" not in fig.layout.title.text and " - " not in subtitle
+        names = " ".join(str(t.name) for t in fig.data) + fig.layout.title.text
+        assert "bridging sample" not in names and "protein" not in title
+        assert fig.layout.legend.yref == "container"

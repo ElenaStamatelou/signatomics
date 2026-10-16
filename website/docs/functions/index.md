@@ -44,6 +44,10 @@ import signatomics.olink as so      # every function below: so.<function>
       colour-blind-checked palette in a fixed order, and identity is never shown by colour alone
       (legends, labels, hollow versus filled dots). Sample IDs appear in the hover text only
       with `show_ids=True`.
+    - **Every chart looks the same way:** a title saying what is shown, a subtitle saying how to
+      read it, the legend above the plot, dots for samples, axis titles with their units, and
+      Olink's words (assay, bridge samples, LOD). On this website every chart is interactive:
+      hover for values, drag to zoom, double-click to reset.
 
 ## The standard table
 
