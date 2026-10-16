@@ -40,5 +40,8 @@ dev = ["pytest"]                  # for running the automatic tests
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"signatomics.olink" = ["data/*.csv"]   # the example NPX file
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

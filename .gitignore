@@ -7,7 +7,8 @@ __pycache__/
 .DS_Store
 
 # Never commit real participant data: examples use made-up data only
-data/
+# real datasets: top level only (the package's synthetic example files in src/ are kept)
+/data/
 *.sav
 *.parquet
 *.xlsx

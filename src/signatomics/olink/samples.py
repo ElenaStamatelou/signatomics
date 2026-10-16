@@ -76,22 +76,22 @@ def add_sample_info(npx: pd.DataFrame, samples, *, on: str, npx_on: str = "Sampl
     matched = protein_ids & list_ids
     exact = raw_protein & raw_list
 
-    report.append(f"protein data: {len(protein_ids)} sample IDs; sample list: {len(list_ids)} IDs "
-                  f"(matched on '{npx_on}' = '{on}')")
-    report.append(f"matched: {len(matched)}"
-                  + (f" ({len(matched) - len(exact)} only after tidying the IDs, e.g. spaces vs underscores)"
+    report.append(f"matched on: {npx_on} (NPX data) = {on} (your sample metadata)")
+    report.append(f"matched: {len(matched)} of {len(protein_ids)} sample IDs in the NPX data"
+                  + (f" ({len(matched) - len(exact)} only after tidying the IDs, e.g. \"308 BIS\" = \"308_BIS\")"
                      if len(matched) > len(exact) else ""))
     if protein_ids - list_ids:
-        report.append(f"WARNING in protein data but NOT in the sample list "
-                      f"(kept, without sample information): {_examples(protein_ids - list_ids)}")
+        report.append(f"WARNING missing from your sample metadata "
+                      f"(kept, without sample metadata): {_examples(protein_ids - list_ids)}")
     if list_ids - protein_ids:
-        report.append(f"in the sample list but without protein data: {_examples(list_ids - protein_ids)}")
+        report.append(f"missing from the NPX data: {_examples(list_ids - protein_ids)}")
 
     extra = [c for c in info.columns if c not in ("sample",)]
     clashes = [c for c in extra if c in df.columns]
     info = info.rename(columns={c: f"{c}_samplelist" for c in clashes})
     if clashes:
-        report.append("columns that exist in both files got the ending _samplelist: " + ", ".join(clashes))
+        report.append("columns in both tables (yours renamed with the ending _samplelist): "
+                      + ", ".join(clashes))
 
     out = df.merge(info, on="sample", how="left", validate="many_to_one")
     out.attrs = dict(npx.attrs)

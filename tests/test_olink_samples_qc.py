@@ -63,7 +63,7 @@ def test_matching_after_tidying_and_report(npx, sample_list):
 def test_unmatched_protein_samples_are_kept_and_reported(npx, sample_list):
     df = add_sample_info(npx, sample_list[sample_list["FIF ID"] != "B2"], on="FIF ID", verbose=False)
     assert df.loc[df["SampleID"] == "B2", "group"].isna().all()
-    assert any("NOT in the sample list" in line and "B2" in line for line in df.attrs["sample_report"])
+    assert any("missing from your sample metadata" in line and "B2" in line for line in df.attrs["sample_report"])
 
 
 def test_clashing_columns_get_a_suffix(npx, sample_list):
@@ -91,12 +91,12 @@ def test_qc_report_finds_everything(npx, sample_list):
     df = add_sample_info(npx, sample_list, on="FIF ID", verbose=False)
     rep = qc_report(df, group="group", verbose=False)
     text = str(rep)
-    assert "quality warnings: 2 measurements" in text
-    assert "empty measurements (no values at all): A4" in text
-    assert "(repeats): A3" in text
-    assert "(bridging samples): 1" in text
+    assert "QC status: 9 PASS, 2 WARN, 0 FAIL" in text
+    assert "empty measurements (no NPX value at all): A4" in text
+    assert "(duplicate sample IDs): A3" in text
+    assert "bridge samples (on more than one plate): 1" in text
     assert "1 of 3" in text                                          # LOW mostly below LOD
-    assert "no 'pre' measured only on plate1" in text                # group mixed up with plate
+    assert "'pre' is missing from plate1" in text                      # group mixed up with plate
 
 
 def test_qc_report_changes_nothing(npx):
@@ -117,10 +117,21 @@ def test_apply_qc_defaults(npx):
     assert any("kept:" in line for line in df.attrs["qc_applied"])
 
 
+def test_apply_qc_removes_fail_and_keeps_warn_by_default():
+    rows = [dict(SampleID=s, Index=i, Assay="P", PlateID="p1", NPX=1.0, QC_Warning=q)
+            for i, (s, q) in enumerate([("S1", "PASS"), ("S2", "WARN"), ("S3", "FAIL"),
+                                        ("S4", "Warning")])]
+    df = apply_qc(pd.DataFrame(rows), verbose=False)
+    assert sorted(df["SampleID"]) == ["S1", "S2", "S4"]               # FAIL removed, WARN kept
+    assert any("QC status FAIL" in line for line in df.attrs["qc_applied"])
+    strict = apply_qc(pd.DataFrame(rows), drop_warnings=True, verbose=False)
+    assert sorted(strict["SampleID"]) == ["S1"]
+
+
 def test_apply_qc_protein_threshold_only_when_asked(npx):
     df = apply_qc(npx, max_below_lod=0.5, verbose=False)
     assert "LOW" not in set(df["Assay"])
-    assert any("removed 1 proteins" in line for line in df.attrs["qc_applied"])
+    assert any("removed 1 assays" in line for line in df.attrs["qc_applied"])
 
 
 def test_detectability_difference_between_groups_is_reported():
@@ -138,7 +149,7 @@ def test_detectability_difference_between_groups_is_reported():
     assert table.loc["X", "healthy"] == 1.0 and table.loc["X", "disease"] == 0.0
     assert table.loc["X", "difference"] == 1.0 and table.loc["Y", "difference"] == 0.0
     text = str(rep)
-    assert "detectability differs" in text and "X" in text
+    assert "detectable in one" in text and "X" in text
 
 
 def test_apply_qc_choices_are_respected(npx):
@@ -175,7 +186,7 @@ def test_controls_are_reported_and_removed(tmp_path):
     path.write_text(text, encoding="utf-8")
     df = read_npx(path, verbose=False)
     report = " ".join(df.attrs["read_report"])
-    assert "1 control measurements" in report and "1 control assays" in report
+    assert "control samples: 1" in report and "internal control assays: 1" in report
     assert "LODNPX -> LOD" in report                                  # newer LOD column name
     clean = apply_qc(df, verbose=False)
     assert set(clean["SampleID"]) == {"S1"} and set(clean["Assay"]) == {"IL8"}
@@ -197,12 +208,12 @@ def test_controls_without_id_and_repeats_by_well(tmp_path):
     path = tmp_path / "new.csv"
     path.write_text(text, encoding="utf-8")
     df = read_npx(path, verbose=False)
-    assert any("2 control measurements" in line for line in df.attrs["read_report"])
+    assert any("control samples: 2" in line for line in df.attrs["read_report"])
     rep = qc_report(df, verbose=False)
     text_rep = str(rep)
-    assert "2 control measurements" in text_rep
-    assert "3 sample measurements of 2 sample IDs" in text_rep          # controls left out
-    assert "(repeats): S1" in text_rep                                    # recognised by WellID
+    assert "2 control sample measurements" in text_rep
+    assert "3 measurements of 2 samples" in text_rep                    # controls left out
+    assert "(duplicate sample IDs): S1" in text_rep                                    # recognised by WellID
     clean = apply_qc(df, drop_warnings=False, verbose=False)
     assert clean.loc[clean["SampleID"] == "S1", "WellID"].tolist() == ["B1"]   # passed one kept
 

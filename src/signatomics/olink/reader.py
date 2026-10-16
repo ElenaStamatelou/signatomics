@@ -112,11 +112,10 @@ def _read_grid(path: Path, sep: str | None, report: list[str]) -> pd.DataFrame |
     """Read a text or Excel file as a grid of text cells, without assuming a header row."""
     suffix = path.suffix.lower()
     if suffix in (".xlsx", ".xls"):
-        report.append("file type: Excel")
+        report.append(f"file type: {suffix}")
         return pd.read_excel(path, header=None, dtype=str)
     sep = sep or _detect_separator(path)
-    names = {",": "comma", ";": "semicolon", "\t": "tab", "|": "vertical bar"}
-    report.append(f"file type: text, separated by {names.get(sep, repr(sep))}")
+    report.append(f"file type: {suffix or 'text'}")
     for encoding in ("utf-8-sig", "latin-1"):
         try:
             return pd.read_csv(path, sep=sep, header=None, dtype=str, encoding=encoding,
@@ -273,18 +272,18 @@ def _wide_to_long(grid: pd.DataFrame, report: list[str]) -> pd.DataFrame:
 
     panels = sorted(long["Panel"].dropna().unique())
     report.append(
-        f"layout: wide (older Olink export) -> converted to one row per sample and protein: "
-        f"{len(samples)} sample rows x {len(assay_cols)} proteins; data type: {data_type}"
+        f"layout: wide format (older Olink export, one row per sample), turned into long format: "
+        f"{len(samples)} samples x {len(assay_cols)} assays; values: {data_type}"
         + (f"; panels: {', '.join(panels)}" if panels else "")
     )
     if n_controls:
-        report.append(f"wide: {n_controls} internal-control columns left out")
+        report.append(f"wide format: {n_controls} internal control assay columns left out")
     if used:
-        report.append("wide: bottom rows used: " + ", ".join(used))
+        report.append("wide format: summary rows at the bottom used: " + ", ".join(used))
     if skipped:
-        report.append("wide: bottom rows NOT used: " + ", ".join(skipped))
+        report.append("wide format: summary rows at the bottom skipped: " + ", ".join(skipped))
     if data_type != "NPX":
-        report.append(f"note: values are {data_type}, not NPX; they are in column '{value_col}'")
+        report.append(f"note: values are {data_type} (the steps expect NPX); they are in column '{value_col}'")
     return long
 
 
@@ -296,7 +295,7 @@ def _standardise_columns(df: pd.DataFrame, column_map: dict | None, report: list
     df = df.rename(columns=lambda c: str(c).strip())
     if column_map:
         df = df.rename(columns=column_map)
-        report.append(f"renamed by you: {column_map}")
+        report.append(f"columns renamed by you: {column_map}")
     lookup = {_key(v): std for std, variants in COLUMN_VARIANTS.items() for v in variants}
     renames = {}
     for col in df.columns:
@@ -305,7 +304,8 @@ def _standardise_columns(df: pd.DataFrame, column_map: dict | None, report: list
             renames[col] = std
     if renames:
         df = df.rename(columns=renames)
-        report.append("standard column names: " + ", ".join(f"{a} -> {b}" for a, b in renames.items()))
+        report.append("columns renamed to the names signatomics uses: "
+                      + ", ".join(f"{a} -> {b}" for a, b in renames.items()))
     return df
 
 
@@ -316,17 +316,56 @@ def _value_column(df: pd.DataFrame) -> str:
     return "NPX"
 
 
+# words that hint at a column's role, for the suggestion when a needed column is missing
+HINTS = {
+    "SampleID": ("sample", "patient", "subject", "participant", "donor", "id"),
+    "Assay": ("assay", "protein", "target", "analyte", "gene", "marker"),
+    "NPX": ("npx", "value", "expression", "level", "log2"),
+    "LOD": ("lod", "detection", "limit"),
+    "PlateID": ("plate",),
+    "QC_Warning": ("qc", "warning", "flag"),
+}
+
+# optional columns and what they are needed for (listed in the report when missing)
+OPTIONAL = {
+    "LOD": "the below-LOD checks",
+    "PlateID": "bridging and the plate checks",
+    "QC_Warning": "the QC status",
+}
+
+
+def _guess(df: pd.DataFrame, needed: list[str]) -> dict:
+    """For each needed column, the file column whose name hints at it (first match)."""
+    free = [c for c in df.columns if _key(c) not in {_key(s) for s in ("SampleID", "Assay", "OlinkID", "NPX")}]
+    guesses = {}
+    for std in needed:
+        for col in free:
+            if col not in guesses and any(h in str(col).lower() for h in HINTS[std]):
+                guesses[col] = std
+                break
+    return guesses
+
+
 def _check_required(df: pd.DataFrame, path: Path) -> None:
-    missing = [c for c in ("SampleID", _value_column(df)) if c not in df.columns]
+    value = _value_column(df)
+    needed = [c for c in ("SampleID",) if c not in df.columns]
     if not any(c in df.columns for c in REQUIRED_ONE_OF):
-        missing.append(" or ".join(REQUIRED_ONE_OF))
-    if missing:
+        needed.append("Assay")
+    if value not in df.columns:
+        needed.append("NPX")
+    if needed:
+        names = {"SampleID": "SampleID (the sample ID)", "Assay": "Assay or OlinkID (the protein)",
+                 "NPX": "NPX (the value)"}
+        guesses = _guess(df, needed)
+        hint = (f"  Did you mean: read_npx(\"{path.name}\", column_map={guesses})"
+                if guesses else
+                f"  Tell the reader which column is which, e.g. "
+                f"read_npx(\"{path.name}\", column_map={{'Patient': 'SampleID'}})")
         raise ValueError(
-            f"{path.name} does not look like an Olink NPX export.\n"
-            f"  Missing: {', '.join(missing)}\n"
-            f"  Found columns: {', '.join(map(str, df.columns))}\n"
-            f"  If a column has another name, tell the reader, e.g. "
-            f"read_npx(path, column_map={{'Patient': 'SampleID'}})."
+            f"{path.name}: the columns signatomics needs are missing.\n"
+            f"  Needed: {', '.join(names[c] for c in needed)}\n"
+            f"  Your file has: {', '.join(map(str, df.columns))}\n"
+            f"{hint}"
         )
 
 
@@ -339,17 +378,19 @@ def _to_number(s: pd.Series) -> tuple[pd.Series, list[str]]:
         notes.append("decimal commas")
     is_pct = text.str.endswith("%", na=False)
     if is_pct.any():
-        notes.append("percentages")
+        notes.append("percentages (\"12%\") read as fractions (0.12)")
     values = pd.to_numeric(text.str.rstrip("%"), errors="coerce").astype("float64")
     values = values.where(~is_pct.fillna(False).astype(bool), values / 100)
     marked_missing = text.str.upper().isin(MISSING_WORDS).fillna(False)
     if marked_missing.any():
         words = sorted(set(text[marked_missing]) - {""})
         if words:
-            notes.append(f"{int(marked_missing.sum())} values written as {'/'.join(words)} -> empty")
+            n = int(marked_missing.sum())
+            notes.append(f"{n} cell{'s' if n != 1 else ''} said {'/'.join(words)}, read as missing values")
     bad = (s.notna() & values.isna() & ~marked_missing).fillna(False)
     if bad.any():
-        notes.append(f"{int(bad.sum())} values not readable as numbers -> empty")
+        n = int(bad.sum())
+        notes.append(f"{n} cell{'s' if n != 1 else ''} could not be read as numbers, read as missing values")
     return values, notes
 
 
@@ -359,7 +400,8 @@ def _convert_types(df: pd.DataFrame, report: list[str]) -> pd.DataFrame:
         if col in df.columns and not pd.api.types.is_numeric_dtype(df[col]):
             df[col], notes = _to_number(df[col])
             if notes:
-                report.append(f"{col}: converted " + ", ".join(notes))
+                label = "MissingFreq (missing frequency)" if col == "MissingFreq" else col
+                report.append(f"{label}: " + "; ".join(notes))
     if "Index" in df.columns and pd.api.types.is_float_dtype(df["Index"]):
         whole = df["Index"].dropna()
         if (whole == whole.round()).all():
@@ -375,7 +417,7 @@ def _convert_types(df: pd.DataFrame, report: list[str]) -> pd.DataFrame:
             lambda v: True if v in TRUE_WORDS else (False if v in FALSE_WORDS else pd.NA)
         ).astype("boolean")
         if set(words) - {"True", "False", "TRUE", "FALSE", "true", "false"}:
-            report.append(f"{col}: converted {'/'.join(words)} to True/False")
+            report.append(f"{col}: {'/'.join(words)} read as True/False")
     return df
 
 
@@ -425,19 +467,26 @@ def read_npx(path, *, sep: str | None = None, column_map: dict | None = None,
     report: list[str] = [f"file: {path.name}"]
 
     if path.suffix.lower() == ".parquet":
-        report.append("file type: parquet")
+        report.append("file type: .parquet")
         df = pd.read_parquet(path)
     else:
         grid = _read_grid(path, sep, report)
         if _is_wide(grid):
             df = _wide_to_long(grid, report)
         else:
-            report.append("layout: long (one row per sample and protein)")
+            report.append("layout: long format (one row per sample and assay)")
             df = _grid_to_long_table(grid)
 
     df = _standardise_columns(df, column_map, report)
     _check_required(df, path)
     df = _convert_types(df, report)
+    absent = [c for c in OPTIONAL if c not in df.columns]
+    if absent:
+        report.append("optional columns missing from the file: "
+                      + "; ".join(f"{c} (for {OPTIONAL[c]})" for c in absent))
+        guesses = _guess(df, absent)
+        if guesses:
+            report.append(f"  if your file has them under another name: read_npx(..., column_map={guesses})")
 
     for col in ("QC_Warning", "Assay_Warning"):
         if col in df.columns and df[col].dtype != bool:
@@ -447,21 +496,24 @@ def read_npx(path, *, sep: str | None = None, column_map: dict | None = None,
         keys = [c for c in ("SampleID", "Index", "WellID", "Panel", "PlateID") if c in df.columns]
         n_ctrl = df[is_ctrl.fillna(False).astype(bool)].groupby(keys, dropna=False).ngroups
         if n_ctrl:
-            report.append(f"contains {n_ctrl} control measurements (SampleType not SAMPLE) - "
-                          f"removed by apply_qc unless drop_controls=False")
+            report.append(f"control samples: {n_ctrl} (SampleType other than SAMPLE); apply_qc removes them")
     if "AssayType" in df.columns:
         n_ctrl = df.loc[df["AssayType"].astype("string").str.lower() != "assay", "OlinkID"].nunique()
         if n_ctrl:
-            report.append(f"contains {n_ctrl} control assays (AssayType not assay) - "
-                          f"removed by apply_qc unless drop_controls=False")
+            report.append(f"internal control assays: {n_ctrl} (AssayType other than assay); apply_qc removes them")
 
     runs = df.drop_duplicates([c for c in ("SampleID", "Index", "PlateID") if c in df.columns])
     protein_col = "Assay" if "Assay" in df.columns else "OlinkID"
-    report.append(
-        f"result: {len(df)} rows, {df['SampleID'].nunique()} sample IDs, "
-        f"{df[protein_col].nunique()} proteins, {len(runs)} sample measurements"
-        + (f", {df['PlateID'].nunique()} plates" if "PlateID" in df.columns else "")
-    )
+    n_ids, n_assays, n_runs = df["SampleID"].nunique(), df[protein_col].nunique(), len(runs)
+    n_plates = df["PlateID"].nunique() if "PlateID" in df.columns else None
+    plates = f", on {n_plates} plates" if n_plates and n_plates > 1 else ""
+    def n(k, word):
+        return f"{k} {word}" + ("" if k == 1 else "s")
+    shape = (f"{n(n_runs, 'sample')} x {n(n_assays, 'assay')}" if n_runs == n_ids
+             else f"{n(n_runs, 'measurement')} x {n(n_assays, 'assay')} ({n_ids} samples, some measured twice)")
+    report.append(f"result: {n(len(df), 'row')} = {shape}{plates}"
+                  if len(df) == n_runs * n_assays
+                  else f"result: {n(len(df), 'row')}: {shape}{plates}")
 
     df = df.reset_index(drop=True)
     df.attrs["read_report"] = report

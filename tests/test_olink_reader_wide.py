@@ -115,13 +115,13 @@ def test_plate_lod_that_cannot_be_linked_is_reported(tmp_path):
     bottom = [("Plate LOD", ["0.1", "0.6", "0.3"]), ("Plate LOD", ["0.2", "0.7", ""]),
               ("Plate LOD", ["0.3", "0.8", ""])]
     df = read_npx(write_csv(tmp_path, wide_grid(bottom=bottom)), verbose=False)
-    assert any("NOT used" in line and "Panel A" in line for line in df.attrs["read_report"])
+    assert any("skipped" in line and "Panel A" in line for line in df.attrs["read_report"])
 
 
 def test_internal_control_columns_are_left_out(tmp_path):
     df = read_npx(write_csv(tmp_path, wide_grid(controls=True)), verbose=False)
     assert set(df["Assay"]) == {"IL8", "IL2", "CCL3"}
-    assert any("internal-control" in line for line in df.attrs["read_report"])
+    assert any("internal control assay columns left out" in line for line in df.attrs["read_report"])
 
 
 def test_sample_ids_stay_text(tmp_path):
@@ -132,7 +132,7 @@ def test_sample_ids_stay_text(tmp_path):
 def test_quantified_data_goes_to_its_own_column(tmp_path):
     df = read_npx(write_csv(tmp_path, wide_grid(data_type="Quantified Data")), verbose=False)
     assert "Quantified_value" in df.columns and "NPX" not in df.columns
-    assert any("not NPX" in line for line in df.attrs["read_report"])
+    assert any("expect NPX" in line for line in df.attrs["read_report"])
 
 
 @pytest.mark.parametrize("fmt", ["csv_semicolon", "csv_comma", "excel"])

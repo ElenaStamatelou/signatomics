@@ -18,18 +18,19 @@ and repeatable. If you work in R, Olink's own R package covers much of the clean
 
 ## Status
 
-Version 0.0.1, in development: reading, sample matching, quality control and plate bridging
-work, with 71 automatic tests. Not yet on the Python package index; see
-[Get started](getting-started.md#1-install). Function names may still change before the first
-release.
+Version 0.0.1, in development: reading, quality control, bridging and sample metadata
+work, with 82 automatic tests; `prepare` does them all in one call, and built-in example data
+lets you try everything. It installs from GitHub until the first release on the Python package index; see [Start](start.md). Function
+names may still change before the first release.
 
 ## Roadmap
 
 <ul class="nodes">
-  <li class="done">Read Olink exports: long and wide layouts; csv, Excel and parquet</li>
-  <li class="done">Attach sample information, with a report of what did not match</li>
-  <li class="done">Quality report and quality step, with every removal reported</li>
+  <li class="done">Read NPX files: long and wide layouts; .csv, .txt, .xlsx and .parquet</li>
+  <li class="done">Quality control: a quality check and charts, then your choices applied, with every removal reported</li>
   <li class="done">Bridging plates and projects, with independent checks</li>
+  <li class="done">Sample metadata, with a report of every ID without a match</li>
+  <li class="done">The usual route in one call (<code>prepare</code>), and built-in example data</li>
   <li>One row per person, with an optional total-protein correction for samples whose dilution varies (saliva, urine)</li>
   <li>Compare groups: one test chosen in advance, effect sizes with confidence intervals, FDR across all proteins</li>
   <li>Find a biomarker signature: nested cross-validation, stability selection, calibration</li>
@@ -43,13 +44,13 @@ release.
 
 - Nothing changes silently: every step that changes data says what it did.
 - Look before you act: checks and charts never change data.
-- Methods chosen in advance, not after seeing the data.
+- Methods chosen in advance, before seeing the data.
 
 ## Cite
 
 A DOI will come with the first release. Until then, cite the
-[GitHub repository](https://github.com/ElenaStamatelou/signatomics). If you use the example data,
-also cite the PAD000040 dataset (see [Get started](getting-started.md#2-get-example-data)).
+[GitHub repository](https://github.com/ElenaStamatelou/signatomics). If you use the public PAD000040 data,
+also cite the dataset and its paper (see [Example: a full analysis](guides/example-analysis.md#1-get-the-data)).
 
 ## Licence and trademarks
 

@@ -17,12 +17,18 @@ one that acts (returns a new table). Tables found while looking are inside the l
 Charts (Plotly): step 3 ``plot_below_lod``, ``plot_npx_strip``, ``plot_group_by_plate``,
 ``plot_sample_qc``; step 4 ``plot_bridge_shift``, ``plot_bridge_scatter``, ``plot_bridge_pca``.
 
+In one call: ``prepare`` runs steps 1-4 with the defaults and prints one report.
+To try it all without a file of your own: ``example_file()`` (a generated NPX file),
+``example_data()`` (the same data as a table) and ``example_samples()`` (its sample metadata).
+
 What the look functions return: ``QCReport`` and ``BridgeCheck``.
 """
 
 from .bridge import BridgeCheck, bridge_check, bridge_plates
+from .example import example_data, example_file, example_samples
 from .plots import (plot_below_lod, plot_bridge_pca, plot_bridge_scatter, plot_bridge_shift,
                     plot_group_by_plate, plot_npx_strip, plot_sample_qc)
+from .prepare import prepare
 from .qc import QCReport, apply_qc, qc_report
 from .reader import read_npx
 from .samples import add_sample_info
@@ -36,6 +42,8 @@ __all__ = [
     # 4. bridge plates
     "bridge_check", "bridge_plates",
     "plot_bridge_shift", "plot_bridge_scatter", "plot_bridge_pca",
+    # in one call, and data to try it on
+    "prepare", "example_file", "example_data", "example_samples",
     # results of the look functions
     "QCReport", "BridgeCheck",
 ]

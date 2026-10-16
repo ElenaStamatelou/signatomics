@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 import pandas as pd
 
 PASS_WORDS = {"PASS", "PASSED", "OK"}
+FAIL_WORDS = {"FAIL", "FAILED"}
 
 
 def _value_col(df: pd.DataFrame) -> str:
@@ -39,7 +40,17 @@ def _measure_col(df: pd.DataFrame) -> str | None:
 
 
 def _is_warning(qc: pd.Series) -> pd.Series:
+    """True for every QC status other than PASS (WARN or FAIL): not used as a bridge sample."""
     return qc.notna() & ~qc.astype(str).str.strip().str.upper().isin(PASS_WORDS)
+
+
+def _qc_status(qc: pd.Series) -> pd.Series:
+    """Olink's QC status per value: PASS, WARN or FAIL (older Target 96 'Warning' counts as WARN)."""
+    up = qc.astype("string").str.strip().str.upper()
+    status = pd.Series("WARN", index=qc.index, dtype="string")
+    status[up.isin(PASS_WORDS)] = "PASS"
+    status[up.isin(FAIL_WORDS)] = "FAIL"
+    return status.where(qc.notna())
 
 
 def _control_masks(df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
@@ -67,7 +78,9 @@ def _measurement_table(df: pd.DataFrame) -> pd.DataFrame:
         agg["qc_warning"] = ("QC_Warning", "first")
     m = df.groupby(keys, dropna=False).agg(**agg).reset_index()
     m["empty"] = m["missing"] == m["values"]
-    m["warning"] = _is_warning(m["qc_warning"]) if "qc_warning" in m else False
+    status = _qc_status(m["qc_warning"]) if "qc_warning" in m else pd.Series(pd.NA, index=m.index)
+    m["warning"] = (status == "WARN").fillna(False).astype(bool)
+    m["fail"] = (status == "FAIL").fillna(False).astype(bool)
     per_plate = [c for c in ("SampleID", "Panel", "PlateID") if c in m.columns]
     measure = _measure_col(m)
     m["repeat"] = (m.groupby(per_plate, dropna=False)[measure].transform("nunique") > 1
@@ -146,11 +159,22 @@ class QCReport:
         return "**Quality report**\n\n" + "\n".join(f"- {line}" for line in self.lines)
 
 
-def qc_report(npx: pd.DataFrame, *, group: str | None = None, max_below_lod: float = 0.5,
-              outlier_sd: float = 3.0, show_ids: bool = True, verbose: bool = True) -> QCReport:
+def _with_groups(npx: pd.DataFrame, samples, on) -> pd.DataFrame:
+    """The data with your sample metadata looked up (for group checks); the input is not changed."""
+    if samples is None:
+        return npx
+    if on is None:
+        raise ValueError("Give on=..., the column in your sample metadata that holds the sample IDs.")
+    from .samples import add_sample_info
+    return add_sample_info(npx, samples, on=on, verbose=False)
+
+
+def qc_report(npx: pd.DataFrame, *, group: str | None = None, samples=None, on: str | None = None,
+              max_below_lod: float = 0.5, outlier_sd: float = 3.0, show_ids: bool = True,
+              verbose: bool = True) -> QCReport:
     """Look at data quality without changing anything.
 
-    Checks: control samples and assays, quality warnings, empty measurements, samples measured
+    Checks: control samples and assays, QC status (PASS / WARN / FAIL), empty measurements, samples measured
     more than once on the same plate (repeats), samples on more than one plate (bridging
     samples), proteins mostly below the detection limit, sample measurements that look odd
     (outliers in median or spread over all proteins), and — if ``group`` is given — whether a
@@ -159,7 +183,10 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, max_below_lod: flo
     Parameters
     ----------
     npx : table from ``read_npx`` (optionally with ``add_sample_info``).
-    group : a sample-information column to check against the plates, e.g. ``"diabetes"``.
+    group : a column of your sample metadata, e.g. ``"diabetes"``: adds the group checks (a group
+        missing from a plate; assays detectable in one group but not another).
+    samples, on : your sample metadata (a table or a path) and its ID column, when ``group`` is not
+        yet a column of ``npx``. They are only looked up; the table you get back is unchanged.
     max_below_lod : share (0-1) above which a protein is reported as "mostly below LOD".
     outlier_sd : a measurement whose median or IQR over all proteins is more than this many
         standard deviations from the others is reported as an outlier (``plot_sample_qc``).
@@ -168,6 +195,7 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, max_below_lod: flo
     Returns a ``QCReport``: the summary lines, plus the tables ``measurements``, ``plates``,
     ``proteins``, ``samples`` and (with ``group``) ``group_by_plate`` and ``below_lod_by_group``.
     """
+    npx = _with_groups(npx, samples, on)
     value, protein = _value_col(npx), _protein_col(npx)
     rep = QCReport()
 
@@ -178,9 +206,9 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, max_below_lod: flo
         kinds = (ctrl.drop_duplicates(_measurement_keys(ctrl))["SampleType"].value_counts()
                  if len(ctrl) else pd.Series(dtype=int))
         rep.lines.append(
-            f"controls (left out of everything below; apply_qc removes them): {n_meas} control "
-            f"measurements" + (f" ({', '.join(f'{n} {k}' for k, n in kinds.items())})" if len(kinds) else "")
-            + f", {npx.loc[ctrl_assays, protein].nunique()} control assays")
+            f"control samples and internal control assays (left out of everything below; apply_qc "
+            f"removes them): {n_meas} control sample measurements" + (f" ({', '.join(f'{n} {k}' for k, n in kinds.items())})" if len(kinds) else "")
+            + f", {npx.loc[ctrl_assays, protein].nunique()} internal control assays")
     df = npx[~(ctrl_samples | ctrl_assays)]
 
     no_id = df["SampleID"].isna()
@@ -189,24 +217,29 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, max_below_lod: flo
 
     m = _measurement_table(df)
     rep.measurements = m
-    rep.lines.append(f"{len(m)} sample measurements of {df['SampleID'].nunique()} sample IDs, "
-                     f"{df[protein].nunique()} proteins"
-                     + (f", {df['PlateID'].nunique()} plates" if "PlateID" in df else ""))
-    rep.lines.append(f"quality warnings: {int(m['warning'].sum())} measurements")
+    n_ids = df["SampleID"].nunique()
+    samples = f"{n_ids} samples" if len(m) == n_ids else f"{len(m)} measurements of {n_ids} samples"
+    rep.lines.append(f"data: {samples}, {df[protein].nunique()} assays"
+                     + (f", {df['PlateID'].nunique()} plate{'s' if df['PlateID'].nunique() != 1 else ''}" if "PlateID" in df else ""))
+    if "qc_warning" in m:
+        rep.lines.append(f"QC status: {int(len(m) - m['warning'].sum() - m['fail'].sum())} PASS, "
+                         f"{int(m['warning'].sum())} WARN, {int(m['fail'].sum())} FAIL")
+    else:
+        rep.lines.append("no QC status column: QC status not checked")
     if m["empty"].any():
-        rep.lines.append(f"WARNING completely empty measurements (no values at all): "
+        rep.lines.append(f"WARNING empty measurements (no NPX value at all): "
                          f"{_ids(m.loc[m['empty'], 'SampleID'], show_ids)}")
     if m["repeat"].any():
-        rep.lines.append(f"measured more than once on the same plate (repeats): "
+        rep.lines.append(f"measured twice on the same plate (duplicate sample IDs): "
                          f"{_ids(m.loc[m['repeat'], 'SampleID'], show_ids)}")
     if m["bridging"].any():
-        rep.lines.append(f"on more than one plate (bridging samples): {m.loc[m['bridging'], 'SampleID'].nunique()}")
+        rep.lines.append(f"bridge samples (on more than one plate): {m.loc[m['bridging'], 'SampleID'].nunique()}")
     if _measure_col(df) is None:
-        rep.lines.append("no Index or WellID column: repeats on the same plate cannot be recognised")
+        rep.lines.append("no Index or WellID column: samples measured twice on one plate cannot be recognised")
 
     if "PlateID" in m:
         rep.plates = (m.groupby("PlateID")
-                      .agg(measurements=("SampleID", "size"), warnings=("warning", "sum"),
+                      .agg(measurements=("SampleID", "size"), warn=("warning", "sum"), fail=("fail", "sum"),
                            empty=("empty", "sum"))
                       .reset_index())
 
@@ -221,28 +254,27 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, max_below_lod: flo
             p = p.merge(df[[protein, "Assay"]].drop_duplicates(protein), on=protein, how="left")
         rep.proteins = p
         mostly = p[p["below_lod"] > max_below_lod]
-        rep.lines.append(f"proteins below the detection limit in more than {max_below_lod:.0%} of "
-                         f"measurements: {len(mostly)} of {len(p)}")
+        rep.lines.append(f"assays below the LOD in more than {max_below_lod:.0%} of the measurements: "
+                         f"{len(mostly)} of {len(p)}")
     else:
-        rep.lines.append("no LOD column: detection-limit check skipped")
+        rep.lines.append("no LOD column: LOD check skipped")
 
     s = _sample_qc_table(df, sd=outlier_sd)
     rep.samples = s
     odd = s[s["outlier"]]
     if len(odd):
-        rep.lines.append(f"sample measurements that look odd (median or spread over all proteins more "
-                         f"than {outlier_sd:g} SD from the others; see plot_sample_qc): "
+        rep.lines.append(f"outliers (median or spread over all assays more than {outlier_sd:g} SD "
+                         f"from the others; see plot_sample_qc): "
                          f"{_ids(odd['SampleID'], show_ids)}")
     else:
-        rep.lines.append(f"no sample measurement looks odd (median and spread over all proteins "
-                         f"within {outlier_sd:g} SD)")
+        rep.lines.append(f"outliers: none (median and spread over all assays within {outlier_sd:g} SD)")
 
     if group:
         if group not in df.columns:
             raise KeyError(f"Group column '{group}' not found (did you run add_sample_info?).")
         if "PlateID" not in df.columns:
             rep.lines.append("no PlateID column: group-vs-plate check skipped")
-        else:
+        elif df["PlateID"].nunique() > 1:
             per_sample = df.drop_duplicates(["SampleID", "PlateID"])
             plates_of = per_sample.groupby("SampleID")["PlateID"].agg(
                 lambda s: "both/several plates" if s.nunique() > 1 else s.iloc[0])
@@ -256,19 +288,19 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, max_below_lod: flo
             if missing:
                 rep.lines.append(
                     "WARNING group mixed up with plate: " +
-                    "; ".join(f"no '{g}' measured only on {pl}" for g, pl in missing) +
-                    ". Plate differences can look like group differences — bridge/normalise the "
-                    "plates and check before comparing groups.")
+                    "; ".join(f"'{g}' is missing from {pl}" for g, pl in missing) +
+                    ". A plate difference can then look like a group difference: bridge the plates "
+                    "before comparing groups.")
             else:
-                rep.lines.append(f"'{group}': every group is present on every plate")
+                rep.lines.append(f"'{group}': every group is on every plate")
         if "LOD" in df.columns:
             by_group = _below_lod_by_group(df, group)
             rep.below_lod_by_group = by_group
             big = by_group[by_group["difference"] >= 0.30]
             if len(big):
                 rep.lines.append(
-                    f"detectability differs between '{group}' groups (>= 30 percentage points "
-                    f"below LOD): {', '.join(map(str, big.index[:10]))}"
+                    f"below the LOD far more often in one '{group}' group than another (by 30 "
+                    f"percentage points or more): {', '.join(map(str, big.index[:10]))}"
                     + (f" ... ({len(big)} in total)" if len(big) > 10 else "")
                     + " - keep these: being undetectable in one group can itself be a signal")
 
@@ -277,7 +309,8 @@ def qc_report(npx: pd.DataFrame, *, group: str | None = None, max_below_lod: flo
     return rep
 
 
-def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_warnings: bool = True,
+def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_fail: bool = True,
+             drop_warnings: bool = False,
              drop_empty: bool = True, max_below_lod: float | None = None,
              repeats: str = "prefer_pass_then_last", drop_samples=None,
              show_ids: bool = True, verbose: bool = True) -> pd.DataFrame:
@@ -287,7 +320,9 @@ def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_warnings: bo
     ----------
     drop_controls : remove control samples (``SampleType`` other than SAMPLE: negative, plate
         and sample controls) and control assays (``AssayType`` other than assay).
-    drop_warnings : remove measurements with a quality warning.
+    drop_fail : remove measurements with QC status FAIL (default True, as Olink does).
+    drop_warnings : also remove measurements with QC status WARN (default False: kept, and
+        counted in ``qc_report``; Olink's own cleaning keeps them too).
     drop_empty : remove measurements without any values.
     max_below_lod : remove proteins below the detection limit in more than this share of the
         measurements (0-1). Default ``None``: keep all proteins - a protein below LOD in one
@@ -317,17 +352,18 @@ def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_warnings: bo
         marked = df[keys].merge(mask_df[keys].drop_duplicates().assign(_drop=True),
                                 on=keys, how="left")
         df = df[~marked["_drop"].notna().to_numpy()]
-        done.append(f"removed {len(mask_df)} measurements ({why}): {_ids(mask_df['SampleID'], show_ids)}")
+        n = len(mask_df)
+        done.append(f"removed {n} measurement{'s' if n != 1 else ''} ({why}): {_ids(mask_df['SampleID'], show_ids)}")
 
     if drop_controls:
         ctrl_samples, ctrl_assays = _control_masks(df)
         if ctrl_samples.any():
             ctrl = df[ctrl_samples].drop_duplicates(keys)
             kinds = ctrl["SampleType"].value_counts()
-            done.append(f"removed {len(ctrl)} control measurements: "
+            done.append(f"removed {len(ctrl)} control sample measurements: "
                         + ", ".join(f"{n} {k}" for k, n in kinds.items()))
         if ctrl_assays.any():
-            done.append(f"removed {df.loc[ctrl_assays, protein].nunique()} control assays: "
+            done.append(f"removed {df.loc[ctrl_assays, protein].nunique()} internal control assays: "
                         + ", ".join(sorted(df.loc[ctrl_assays, "AssayType"].astype(str).unique())))
         df = df[~(ctrl_samples | ctrl_assays)]
 
@@ -349,10 +385,13 @@ def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_warnings: bo
 
     if drop_empty:
         m = _measurement_table(df)
-        drop_measurements(m[m["empty"]], "no values")
+        drop_measurements(m[m["empty"]], "no NPX value at all")
+    if drop_fail and "QC_Warning" in df.columns:
+        m = _measurement_table(df)
+        drop_measurements(m[m["fail"]], "QC status FAIL")
     if drop_warnings and "QC_Warning" in df.columns:
         m = _measurement_table(df)
-        drop_measurements(m[m["warning"]], "quality warning")
+        drop_measurements(m[m["warning"]], "QC status WARN")
 
     measure = _measure_col(df)
     if repeats != "keep_all" and measure:
@@ -361,7 +400,8 @@ def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_warnings: bo
         if not rep.empty:
             per_plate = [c for c in ("SampleID", "Panel", "PlateID") if c in rep.columns]
             if repeats == "prefer_pass_then_last":
-                rep = rep.sort_values(per_plate + ["warning", measure],
+                rep["_not_pass"] = rep["warning"] | rep["fail"]
+                rep = rep.sort_values(per_plate + ["_not_pass", measure],
                                       ascending=[True] * len(per_plate) + [False, True])
                 keep = rep.groupby(per_plate).tail(1)
             elif repeats in ("first", "last"):
@@ -370,7 +410,9 @@ def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_warnings: bo
             else:
                 raise ValueError("repeats must be 'prefer_pass_then_last', 'first', 'last' or 'keep_all'")
             drop = rep.merge(keep[keys].assign(_k=True), on=keys, how="left")
-            drop_measurements(drop[drop["_k"].isna()], f"repeat on the same plate, rule '{repeats}'")
+            why = ("measured twice on the same plate; kept the one that passed QC, then the last"
+                   if repeats == "prefer_pass_then_last" else f"measured twice on the same plate; rule '{repeats}'")
+            drop_measurements(drop[drop["_k"].isna()], why)
 
     if max_below_lod is not None and "LOD" in df.columns:
         below = (df[value] < df["LOD"]).where(df[value].notna() & df["LOD"].notna())
@@ -379,12 +421,13 @@ def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_warnings: bo
         if len(gone):
             names = df.loc[df[protein].isin(gone), "Assay" if "Assay" in df else protein].unique()
             df = df[~df[protein].isin(gone)]
-            done.append(f"removed {len(gone)} proteins below the detection limit in more than "
+            done.append(f"removed {len(gone)} assays below the LOD in more than "
                         f"{max_below_lod:.0%} of measurements: {', '.join(map(str, names))}")
 
     kept = df.groupby(keys, dropna=False).ngroups
-    done.append(f"kept: {kept} measurements, {df['SampleID'].nunique()} sample IDs, "
-                f"{df[protein].nunique()} proteins")
+    n_ids = df["SampleID"].nunique()
+    kept_txt = f"{n_ids} samples" if kept == n_ids else f"{kept} measurements of {n_ids} samples"
+    done.append(f"kept: {kept_txt}, {df[protein].nunique()} assays")
     df = df.reset_index(drop=True)
     df.attrs = dict(npx.attrs)
     df.attrs["qc_applied"] = done

@@ -124,7 +124,7 @@ def test_only_chosen_bridges(npx):
     f = bridge_check(npx, bridges=["B_02", "B_03", "B_04"], verbose=False).factors
     assert (f["bridges"] == 3).all() and f["few_bridges"].all()
     report = " ".join(bridge_plates(npx, factors=f, verbose=False).attrs["bridge_report"])
-    assert "few bridging pairs" in report
+    assert "few bridge samples" in report
 
 
 def test_no_bridges_is_reported_not_crashed():
@@ -160,7 +160,7 @@ def test_group_check_and_odd_bridge(npx):
     df.loc[(df["SampleID"] == "B_05") & (df["PlateID"] == "plate2"), "NPX"] -= 3   # odd bridge
     chk = bridge_check(df, group="group", show_ids=True, verbose=False)
     text = " ".join(chk.lines)
-    assert "among the bridging samples" in text
+    assert "among the bridge samples" in text
     assert chk.by_group is not None and "difference" in chk.by_group.columns
     assert "B_05" in text                                    # flagged as shifting differently
     hidden = " ".join(bridge_check(df, group="group", show_ids=False, verbose=False).lines)

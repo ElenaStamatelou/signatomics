@@ -77,6 +77,6 @@ def test_sample_qc_finds_the_abnormal_sample():
     rep = qc_report(df, outlier_sd=3, verbose=False)
     table = rep.samples
     assert table.loc[table["outlier"], "SampleID"].tolist() == ["S07"]
-    assert "look odd" in str(rep) and "S07" in str(rep)
+    assert "outliers (" in str(rep) and "S07" in str(rep)
     fig = plot_sample_qc(df, sd=3)
     assert any(t.name and "outlier" in t.name for t in fig.data)

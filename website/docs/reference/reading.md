@@ -1,24 +1,24 @@
 ---
 title: "Read Olink NPX files in Python (read_npx)"
-description: "read_npx reads any Olink export (long or wide NPX Manager layout; csv, Excel, parquet) into one standard table, with a reading report."
+description: "read_npx reads any NPX file (long or wide NPX Manager layout; .csv, .txt, .xlsx, .parquet) into one standard table, with a reading report."
 ---
 
-# Reading Olink files
+# Data import
 
-Turn any Olink export into the [standard table](index.md#the-standard-table).
+Turn any NPX file into the [standard table](index.md#the-standard-table), in long format.
 { .lede }
 
 --8<-- "standard-table.html"
 
 ## `read_npx`
 
-Read an Olink export into the standard table.
+Read an NPX file into the standard table.
 
 ```python
 read_npx(path, *, sep=None, column_map=None, verbose=True) -> pandas.DataFrame
 ```
 
-`read_npx` reads csv, txt and tsv files, Excel (`.xlsx`, `.xls`) and parquet. It handles the
+`read_npx` reads `.csv`, `.txt` and `.tsv` files, `.xlsx` and `.xls` files, and `.parquet` files. It handles the
 current **long** layout and older **wide** exports in the NPX Manager style. In those, proteins
 sit side by side, with a header block (Panel, Assay, Uniprot ID, OlinkID) and a bottom block
 (LOD, Missing Data freq., Plate LOD, …). Wide files are converted to the long layout
@@ -52,8 +52,11 @@ gives the same table.
 **Errors**
 
 - `FileNotFoundError`: the file does not exist.
-- `ValueError`: the file has no sample ID, value or protein column. The message lists the columns
-  that *were* found and suggests `column_map`.
+- `ValueError`: a needed column is missing (sample ID, protein, value). The message lists your
+  file's columns and suggests a `column_map` to copy, based on the column names.
+
+Missing optional columns (`LOD`, `PlateID`, `QC_Warning`) get a line in the reading report, with
+what each is needed for and, when a column name hints at one, a `column_map` suggestion.
 
 **Example**
 
@@ -64,12 +67,12 @@ npx = so.read_npx("inflam_PRA_dt2.raw.csv")
 ```text
 Reading report
   file: inflam_PRA_dt2.raw.csv
-  file type: text, separated by comma
-  layout: long (one row per sample and protein)
-  standard column names: PlateLOD -> LOD
-  NPX: converted 184 values written as No Data -> empty
-  MissingFreq: converted percentages
-  result: 8096 rows, 88 sample IDs, 92 proteins, 88 sample measurements, 1 plates
+  file type: .csv
+  layout: long format (one row per sample and assay)
+  columns renamed to the names signatomics uses: PlateLOD -> LOD
+  NPX: 184 cells said No Data, read as missing values
+  MissingFreq (missing frequency): percentages ("12%") read as fractions (0.12)
+  result: 8096 rows = 88 samples x 92 assays
 ```
 
 To read several plates, read each file and stack them:

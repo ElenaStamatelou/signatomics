@@ -1,60 +1,53 @@
 ---
 title: "Function reference: Python tools for Olink data"
-description: "Every function of signatomics.olink: reading Olink exports, sample matching, quality control, plate bridging and charts."
+description: "Every function of signatomics.olink: reading NPX files, adding sample metadata, quality control, plate bridging, charts, and the one-call route."
+hide:
+  - toc
 ---
 
-# Function reference
+# Reference
 
-<p class="lede">Every public function in <code>signatomics.olink</code>: what it does, what goes
-in, what comes out, the errors it can raise, and an example on real data.</p>
-
-<p class="small">Version 0.0.1 · updated 14 Oct 2026</p>
+Every function, for looking things up. New here? Begin with [Start](../start.md) or the
+[guides](../guides/index.md).
+{ .lede }
 
 ```python
 import signatomics.olink as so      # every function below: so.<function>
 ```
 
-## Functions by step
-
-Each step has one function that **looks** (changes nothing) and, where data changes, one that
-**acts**. The tables a look function finds are inside its result, so there are no extra
-helper functions to learn. Charts sit with the step whose result they show.
+| Step | Look (your data stays as it is) | Act (returns a new table) | Charts |
+|---|---|---|---|
+| [In one call](prepare.md) | | [`prepare`](prepare.md#prepare) | |
+| [Data import](reading.md) | | [`read_npx`](reading.md#read_npx) | |
+| [Quality control](quality.md) | [`qc_report`](quality.md#qc_report) | [`apply_qc`](quality.md#apply_qc) | [`plot_npx_strip`](quality.md#plot_npx_strip), [`plot_sample_qc`](quality.md#plot_sample_qc), [`plot_below_lod`](quality.md#plot_below_lod), [`plot_group_by_plate`](quality.md#plot_group_by_plate) |
+| [Bridging](bridging.md) | [`bridge_check`](bridging.md#bridge_check) | [`bridge_plates`](bridging.md#bridge_plates) | [`plot_bridge_shift`](bridging.md#plot_bridge_shift), [`plot_bridge_scatter`](bridging.md#plot_bridge_scatter), [`plot_bridge_pca`](bridging.md#plot_bridge_pca) |
+| [Sample metadata](samples.md) | | [`add_sample_info`](samples.md#add_sample_info) | |
+| [Example data](prepare.md#example_file) | | [`example_file`](prepare.md#example_file), [`example_data`](prepare.md#example_data), [`example_samples`](prepare.md#example_samples) | |
 
 --8<-- "look-act.html"
 
-| Step | Look | Act | Charts |
-|---|---|---|---|
-| [1. Reading](reading.md) | | [`read_npx`](reading.md#read_npx) | |
-| [2. Sample information](samples.md) | | [`add_sample_info`](samples.md#add_sample_info) | |
-| [3. Quality](quality.md) | [`qc_report`](quality.md#qc_report) | [`apply_qc`](quality.md#apply_qc) | [`plot_below_lod`](quality.md#plot_below_lod), [`plot_npx_strip`](quality.md#plot_npx_strip), [`plot_group_by_plate`](quality.md#plot_group_by_plate), [`plot_sample_qc`](quality.md#plot_sample_qc) |
-| [4. Bridging plates](bridging.md) | [`bridge_check`](bridging.md#bridge_check) | [`bridge_plates`](bridging.md#bridge_plates) | [`plot_bridge_shift`](bridging.md#plot_bridge_shift), [`plot_bridge_scatter`](bridging.md#plot_bridge_scatter), [`plot_bridge_pca`](bridging.md#plot_bridge_pca) |
+??? "Rules every function follows"
 
-What the look functions return: `QCReport` (from `qc_report`) and `BridgeCheck` (from
-`bridge_check`). Both print as a report and hold the tables behind it as attributes, for example
-`qc_report(...).samples` or `bridge_check(...).factors`.
-
-## Rules that hold for every function
-
-- **Nothing is changed silently.** Functions that change data print a report and also store it in
-  the result's `df.attrs` (for example `df.attrs["qc_applied"]`). `verbose=False` stops the
-  printing, but the report is still stored.
-- **"Look" functions never change data.** These are `qc_report`, `bridge_check` and all charts.
-  **"Do" functions** (`apply_qc`, `bridge_plates`) return a *new* table and leave the input as it was.
-- **Sample IDs can be hidden.** Every function that can list IDs has a `show_ids` argument. With
-  `show_ids=False` it gives counts only, which are safe to share.
-- **Olink's control samples and control assays** are recognised from `SampleType` / `AssayType`.
-  They are left out of all counts, checks and charts, and `apply_qc` removes them.
-- **Charts** return a Plotly figure: interactive in a notebook, `fig.write_image("chart.png")` for
-  a static file, `fig.write_html("chart.html")` for a file you can share. Colours come from a
-  colour-blind-checked palette in a fixed order, and identity is never shown by colour alone
-  (legends, marker shapes, hollow versus filled dots). Sample IDs appear in the hover text only
-  with `show_ids=True`.
+    - **Nothing is changed silently.** Functions that change data print a report and also store it in
+      the result's `df.attrs` (for example `df.attrs["qc_applied"]`). `verbose=False` stops the
+      printing, but the report is still stored.
+    - **"Look" functions never change data.** These are `qc_report`, `bridge_check` and all charts.
+      **"Do" functions** (`apply_qc`, `bridge_plates`) return a *new* table and leave the input as it was.
+    - **Sample IDs can be hidden.** Every function that can list IDs has a `show_ids` argument. With
+      `show_ids=False` it gives counts only, which are safe to share.
+    - **Olink's control samples and control assays** are recognised from `SampleType` / `AssayType`.
+      They are left out of all counts, checks and charts, and `apply_qc` removes them.
+    - **Charts** return a Plotly figure: interactive in a notebook, `fig.write_image("chart.png")` for
+      a static file, `fig.write_html("chart.html")` for a file you can share. Colours come from a
+      colour-blind-checked palette in a fixed order, and identity is never shown by colour alone
+      (legends, marker shapes, hollow versus filled dots). Sample IDs appear in the hover text only
+      with `show_ids=True`.
 
 ## The standard table
 
 Every function reads and returns the same kind of table, a pandas `DataFrame` with **one row per
-sample measurement and protein** ("long" format). [`read_npx`](reading.md#read_npx) makes it from
-any Olink export.
+sample and assay** (long format). [`read_npx`](reading.md#read_npx) makes it from
+any NPX file.
 
 | Column | What it holds | Always there? |
 |---|---|---|
@@ -65,7 +58,7 @@ any Olink export.
 | `Panel`, `Panel_Version` | the Olink panel | if in the file |
 | `PlateID` | the plate the sample was measured on | if in the file |
 | `Index`, `WellID` | position of the measurement; tells repeats of the same sample apart | if in the file |
-| `QC_Warning` | sample quality flag (`Pass` / `Warning`) | if in the file |
+| `QC_Warning` | QC status per sample (`PASS` / `WARN` / `FAIL`; older exports `Pass` / `Warning`) | if in the file |
 | `Assay_Warning` | protein quality flag | if in the file |
 | `LOD`, `MaxLOD` | limit of detection (per protein, often per plate), in NPX | if in the file |
 | `MissingFreq` | share of samples below LOD, as a number 0–1 | if in the file |
@@ -80,18 +73,3 @@ Columns added by later steps:
 | *(your sample-list columns)* | `add_sample_info` | e.g. `diabetes`, `age`, `sex` |
 | `NPX_unbridged`, `LOD_unbridged` | `bridge_plates` | the values before bridging |
 | `Bridge_adjustment` | `bridge_plates` | NPX added to this row by bridging (0 on the reference plate) |
-
-## Words used in this reference
-
-measurement
-:   one sample in one well of one plate (for several panels: per panel). A sample measured twice
-    has two measurements.
-
-repeat
-:   the same sample measured more than once *on the same plate* (for example a rerun).
-
-bridging sample
-:   the same sample measured on *different* plates, on purpose, to line up the plates.
-
-below LOD
-:   `NPX < LOD`: the signal cannot be told apart from background noise.

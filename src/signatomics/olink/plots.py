@@ -61,7 +61,7 @@ def _group_colors(values, max_groups: int = 3) -> dict:
 # 1. Share below the detection limit, per protein
 # ------------------------------------------------------------------------------------------
 
-def plot_below_lod(npx: pd.DataFrame, *, group: str | None = None,
+def plot_below_lod(npx: pd.DataFrame, *, group: str | None = None, samples=None, on=None,
                    max_below_lod: float | None = None, only_with_below: bool = True) -> go.Figure:
     """Horizontal bars: % of measurements below the detection limit, per protein.
 
@@ -71,7 +71,8 @@ def plot_below_lod(npx: pd.DataFrame, *, group: str | None = None,
     ones ``apply_qc(max_below_lod=...)`` would remove). By default nothing is marked as removed.
     """
     if group is not None:
-        return _plot_below_lod_by_group(npx, group, only_with_below)
+        from .qc import _with_groups
+        return _plot_below_lod_by_group(_with_groups(npx, samples, on), group, only_with_below)
     rep = qc_report(npx, verbose=False)
     if rep.proteins is None:
         raise ValueError("No LOD column: the share below the detection limit cannot be computed.")
@@ -133,10 +134,10 @@ def _plot_below_lod_by_group(npx: pd.DataFrame, group: str, only_with_below: boo
 # 2. NPX per protein, by group, with the detection limit
 # ------------------------------------------------------------------------------------------
 
-def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, proteins=None,
-                   per_row: int = 30, order: str = "name", show_ids: bool = False,
+def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, samples=None, on=None,
+                   proteins=None, per_row: int = 30, order: str = "name", show_ids: bool = False,
                    seed: int = 0) -> go.Figure:
-    """Every measurement as a dot, per protein, groups side by side; the LOD as a dark dash.
+    """Every measurement as a dot, per protein, groups side by side; the LOD as a red line.
 
     Values below the detection limit are drawn as **hollow** dots, so it is visible how much of
     a protein's signal is unreliable. Long protein lists are split into rows of ``per_row``.
@@ -147,8 +148,11 @@ def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, proteins=None
     proteins : list of proteins (Assay names) to show; default all.
     order : ``"name"`` (alphabetical) or ``"below_lod"`` (most below LOD first).
     show_ids : include sample IDs in the hover text.
+    samples, on : your sample metadata and its ID column, when ``group`` is not yet a column of
+        ``npx`` (only looked up, as in ``qc_report``).
     """
-    df = _samples_only(npx)
+    from .qc import _with_groups
+    df = _samples_only(_with_groups(npx, samples, on))
     value = _value_col(df)
     label = "Assay" if "Assay" in df.columns else _protein_col(df)
     if proteins is not None:
@@ -201,7 +205,7 @@ def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, proteins=None
             fig.add_scatter(
                 x=[pos[p] for p in chunk], y=lod["median"], mode="markers",
                 name="detection limit (LOD)", legendgroup="lod", showlegend=(r == 1),
-                marker=dict(symbol="line-ew", size=26, line=dict(color=INK, width=2.5)),
+                marker=dict(symbol="line-ew", size=26, line=dict(color=CRITICAL, width=2.5)),
                 customdata=np.column_stack([chunk, lod["min"], lod["max"]]),
                 hovertemplate="<b>%{customdata[0]}</b><br>LOD %{y:.2f}"
                               "<br>(per plate %{customdata[1]:.2f} – %{customdata[2]:.2f})<extra></extra>",
@@ -210,7 +214,7 @@ def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, proteins=None
                          range=[-0.6, len(chunk) - 0.4], row=r, col=1, showgrid=False)
         fig.update_yaxes(title=value, row=r, col=1)
 
-    subtitle = "hollow dots = below the detection limit (unreliable); dash = LOD"
+    subtitle = "red line = detection limit (LOD); hollow dots = below the LOD"
     fig.update_layout(height=430 * len(rows) + 90, width=max(700, 34 * min(per_row, len(names)) + 160),
                       margin=dict(l=70, r=30, t=120, b=90))
     return _style(fig, f"{value} per protein" + (f" by {group}" if group else ""), subtitle)
@@ -220,13 +224,16 @@ def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, proteins=None
 # 3. Groups per plate
 # ------------------------------------------------------------------------------------------
 
-def plot_group_by_plate(npx: pd.DataFrame, group: str) -> go.Figure:
+def plot_group_by_plate(npx: pd.DataFrame, group: str, *, samples=None, on=None) -> go.Figure:
     """Stacked bars: how many people of each group were measured on each plate.
 
     A group that is missing from a plate (or strongly over-represented) means plate
     differences can look like group differences.
+
+    samples, on : your sample metadata and its ID column, when ``group`` is not yet a column of
+        ``npx`` (only looked up, as in ``qc_report``).
     """
-    table = qc_report(npx, group=group, verbose=False).group_by_plate
+    table = qc_report(npx, group=group, samples=samples, on=on, verbose=False).group_by_plate
     plates = list(table.columns)
     if len(plates) > len(SERIES):
         raise ValueError(f"{len(plates)} plates: too many to colour distinctly.")

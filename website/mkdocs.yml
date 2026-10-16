@@ -4,8 +4,9 @@
 
 site_name: signatomics
 site_url: https://signatomics.elenastamatelou.com/
-site_description: Python tools for Olink (PEA) proteomics data. Read, check and bridge your data, with every step reported.
+site_description: Python tools for Olink (PEA) proteomics data. Read, quality control, bridging and sample metadata, with every step reported.
 site_author: Elena Stamatelou
+# GitHub link with stars/forks in the header: Elena wants it ALWAYS kept (standing rule, 15 Oct 2026)
 repo_url: https://github.com/ElenaStamatelou/signatomics
 repo_name: signatomics
 edit_uri: ""
@@ -17,16 +18,14 @@ theme:
   favicon: assets/favicon.svg
   language: en
   font:
-    text: IBM Plex Sans
-    code: IBM Plex Mono
+    text: Public Sans
+    code: JetBrains Mono
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
+    - scheme: default            # light by default; the toggle switches to dark
       primary: custom
       accent: custom
       toggle: { icon: material/weather-night, name: Dark mode }
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
+    - scheme: slate
       primary: custom
       accent: custom
       toggle: { icon: material/weather-sunny, name: Light mode }
@@ -38,17 +37,21 @@ theme:
     - navigation.sections
     - navigation.indexes
     - navigation.top
-    - navigation.footer
     - navigation.instant
     - toc.follow
     - search.suggest
     - search.highlight
     - content.code.copy
+    - content.tooltips          # hover a term (NPX, LOD, ...) for its meaning
 
 extra_css:
   - assets/stylesheets/signatomics.css
 
+extra_javascript:
+  - assets/javascripts/charts.js   # interactive charts, loaded only when visible
+
 markdown_extensions:
+  - abbr                       # glossary: website/snippets/glossary.md
   - admonition
   - attr_list
   - def_list
@@ -61,6 +64,7 @@ markdown_extensions:
   - pymdownx.snippets:          # shared diagrams: --8<-- "bridging.html"
       base_path: [website/snippets, snippets]
       check_paths: true
+      auto_append: [glossary.md]
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
@@ -72,12 +76,27 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Get started: getting-started.md
-  - Recipes: how-to/index.md
+  - Start: start.md
+  - Guides:
+      - guides/index.md
+      - Preprocessing:
+          - Data import: guides/data-import.md
+          - Quality control: guides/quality-control.md
+          - Bridging: guides/bridging.md
+          - Sample metadata: guides/sample-metadata.md
+      - "Example: a full analysis": guides/example-analysis.md
   - Reference:
       - reference/index.md
-      - Reading: reference/reading.md
-      - Sample information: reference/samples.md
-      - Quality: reference/quality.md
-      - Bridging plates: reference/bridging.md
+      - Preprocessing:
+          - In one call: reference/prepare.md
+          - Data import: reference/reading.md
+          - Quality control: reference/quality.md
+          - Bridging: reference/bridging.md
+          - Sample metadata: reference/samples.md
   - About: about.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ElenaStamatelou/signatomics
+      name: signatomics on GitHub

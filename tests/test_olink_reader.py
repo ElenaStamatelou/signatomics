@@ -29,7 +29,7 @@ def test_reads_comma_file_and_reports(tmp_path):
     assert len(df) == 4
     assert df["SampleID"].nunique() == 2
     report = " ".join(df.attrs["read_report"])
-    assert "comma" in report and "2 sample IDs" in report and "2 proteins" in report
+    assert "file type: .csv" in report and "2 samples x 2 assays" in report
 
 
 def test_sample_ids_stay_text_with_leading_zeros(tmp_path):
@@ -64,15 +64,15 @@ def test_no_data_words_become_empty_and_are_reported(tmp_path):
     df = read_npx(write(tmp_path, text), verbose=False)
     assert df["NPX"].isna().tolist() == [False, True, True, True]
     report = " ".join(df.attrs["read_report"])
-    assert "1 values written as No Data" in report
-    assert "1 values not readable as numbers" in report
+    assert "1 cell said No Data" in report
+    assert "1 cell could not be read as numbers" in report
 
 
 def test_semicolon_file_with_decimal_commas(tmp_path):
     text = "SampleID;Assay;NPX;LOD\nA1;IL8;4,81;0,10\nA2;IL8;5,02;0,10\n"
     df = read_npx(write(tmp_path, text), verbose=False)
     assert df["NPX"].tolist() == [4.81, 5.02]
-    assert "semicolon" in " ".join(df.attrs["read_report"])
+    assert "decimal commas" in " ".join(df.attrs["read_report"])
 
 
 def test_column_name_variants_are_standardised(tmp_path):
@@ -89,8 +89,16 @@ def test_own_column_names_via_column_map(tmp_path):
 
 def test_clear_message_when_not_an_npx_file(tmp_path):
     text = "Patient,Glucose\nA1,5.6\n"
-    with pytest.raises(ValueError, match="Missing: SampleID, NPX"):
+    with pytest.raises(ValueError, match="Needed: SampleID .*Assay or OlinkID .*NPX") as err:
         read_npx(write(tmp_path, text), verbose=False)
+    assert "'Patient': 'SampleID'" in str(err.value)          # a suggestion to copy
+
+
+def test_missing_optional_columns_are_reported_with_a_suggestion(tmp_path):
+    text = "SampleID,Assay,NPX,Plate\nA1,IL8,4.8,p1\n"
+    report = read_npx(write(tmp_path, text), verbose=False).attrs["read_report"]
+    assert any(line.startswith("optional columns missing from the file: LOD") for line in report)
+    assert any("{'Plate': 'PlateID'}" in line for line in report)
 
 
 def test_parquet_and_excel_give_the_same_table(tmp_path):

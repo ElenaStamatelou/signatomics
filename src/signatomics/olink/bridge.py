@@ -140,6 +140,7 @@ class BridgeCheck:
 
 
 def bridge_check(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None, group: str | None = None,
+                 samples=None, on: str | None = None,
                  bridges=None, exclude_warnings: bool = True, exclude_below_lod: bool = False,
                  min_bridges: int = 8, tolerance: float = 0.1, show_ids: bool = True,
                  verbose: bool = True) -> BridgeCheck:
@@ -153,7 +154,9 @@ def bridge_check(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None, g
     batch : the column that tells the plates or projects apart (default ``"PlateID"``; use e.g.
         ``"Project"`` when bridging two whole projects whose plate names may overlap).
     reference : the plate the others are compared with; default the plate with most samples.
-    group : a sample-information column (e.g. ``"diabetes"``). Checks whether the bridging
+    samples, on : your sample metadata and its ID column, when ``group`` is not yet a column of
+        ``npx`` (only looked up, as in ``qc_report``).
+    group : a column of your sample metadata (e.g. ``"diabetes"``). Checks whether the bridging
         samples represent the groups, and whether the plate shift is the same in every group -
         if not, bridging could add or remove a group difference.
     bridges : the sample IDs to use as bridging samples; default every sample measured on the
@@ -172,6 +175,8 @@ def bridge_check(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None, g
     the ``adjustment`` that ``bridge_plates`` adds, ``bridges`` used, ``spread``,
     ``few_bridges``) and, with ``group``, ``by_group``.
     """
+    from .qc import _with_groups
+    npx = _with_groups(npx, samples, on)
     d = _bridge_differences(npx, batch=batch, reference=reference, bridges=bridges,
                             exclude_warnings=exclude_warnings, exclude_below_lod=exclude_below_lod)
     ref = d.attrs["reference"]
@@ -200,30 +205,29 @@ def bridge_check(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None, g
         n_br = d.loc[d["plate"] == plate, "sample"].nunique()
         shifted = pp[pp["shift"].abs() > tolerance]
         chk.lines.append(
-            f"{plate}: {n_br} bridging samples; reads {_nz(pp['shift'].median()):+.2f} NPX vs the "
-            f"reference (median over proteins; per protein {_nz(pp['shift'].min()):+.2f} to "
-            f"{_nz(pp['shift'].max()):+.2f}; {2 ** pp['shift'].median():.2f} times)")
+            f"{plate}: reads {_nz(pp['shift'].median()):+.2f} NPX compared with {ref} (median over "
+            f"assays; per assay {_nz(pp['shift'].min()):+.2f} to {_nz(pp['shift'].max()):+.2f}), "
+            f"measured on {n_br} bridge samples")
         chk.lines.append(
-            f"  proteins shifted by more than {tolerance:g} NPX: {len(shifted)} of {len(pp)}"
+            f"  assays shifted by more than {tolerance:g} NPX: {len(shifted)} of {len(pp)}"
             + (" - bridging needed" if len(shifted) else " - the plates are lined up"))
         chk.lines.append(
-            f"  noise: the bridge differences of one protein typically spread "
-            f"{pp['spread'].median():.2f} NPX (IQR) - measurement noise; bridging removes the "
-            f"shift, not this")
+            f"  noise: the bridge samples' differences spread {pp['spread'].median():.2f} NPX per "
+            f"assay (typical IQR); bridging removes the shift; this noise stays")
         if n_br < min_bridges:
-            chk.lines.append(f"  WARNING only {n_br} bridging samples: the shift per protein is "
+            chk.lines.append(f"  WARNING only {n_br} bridge samples: the shift per assay is "
                              f"uncertain ({min_bridges} or more are usually advised)")
         ss = s[s["plate"] == plate]
         med = ss["shift"].median()
         mad = (ss["shift"] - med).abs().median() * 1.4826
         odd = ss[(ss["shift"] - med).abs() > max(3 * mad, 0.25)] if len(ss) >= 5 else ss.iloc[0:0]
         if len(odd):
-            chk.lines.append(f"  bridging samples that shift differently from the others "
-                             f"(check them: mix-up or degraded tube?): {_ids(odd['sample'], show_ids)}")
+            chk.lines.append(f"  bridge samples that shift differently from the others "
+                             f"(a mix-up or a degraded tube?): {_ids(odd['sample'], show_ids)}")
 
     if "Bridge_adjustment" in npx.columns:
         chk.lines.append(
-            "note: this table is already bridged with these bridging samples, so shifts of about 0 "
+            "note: this table is already bridged with these bridge samples, so shifts of about 0 "
             "are expected by construction. Independent checks: plot_bridge_pca (the same samples "
             "should now overlap) and, with group=..., whether the shift was the same in every group")
 
@@ -235,10 +239,10 @@ def bridge_check(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None, g
         everyone = groups.value_counts()
         in_bridges = groups.reindex(d["sample"].unique()).value_counts()
         parts = [f"{g}: {int(in_bridges.get(g, 0))} of {int(n)}" for g, n in everyone.items()]
-        chk.lines.append(f"'{group}' among the bridging samples: " + "; ".join(parts))
+        chk.lines.append(f"'{group}' among the bridge samples: " + "; ".join(parts))
         missing = [str(g) for g in everyone.index if in_bridges.get(g, 0) == 0]
         if missing:
-            chk.lines.append(f"  WARNING no bridging samples from: {', '.join(missing)} - it cannot "
+            chk.lines.append(f"  WARNING no bridge samples from: {', '.join(missing)} - it cannot "
                              f"be checked whether the plate shift is the same for this group")
         dg = d.assign(_group=d["sample"].map(groups)).dropna(subset=["_group"])
         per_sample = dg.groupby(["plate", "_group", "sample"])["difference"].median()
@@ -254,10 +258,10 @@ def bridge_check(npx: pd.DataFrame, *, batch: str = "PlateID", reference=None, g
         big = chk.by_group[chk.by_group["difference"] > 0.5]
         if len(big):
             chk.lines.append(
-                f"  proteins whose shift differs by more than 0.5 NPX between groups: "
+                f"  assays whose shift differs by more than 0.5 NPX between groups: "
                 f"{', '.join(map(str, big.index[:10]))}" + (f" ... ({len(big)} in total)" if len(big) > 10 else "")
-                + " - with few bridges per group this is often noise; look at them before trusting "
-                  "group differences for these proteins")
+                + " - with few bridge samples per group this is often noise; look at them before "
+                  "trusting group differences for these assays")
 
     if verbose:
         print(chk)
@@ -362,28 +366,32 @@ def bridge_plates(npx: pd.DataFrame, *, factors: pd.DataFrame | None = None, bat
             df[col] = df[col] + np.nan_to_num(adj, nan=0.0)
     df["Bridge_adjustment"] = adj
 
-    report = [f"reference (not changed): {ref}"]
+    report = [f"reference (kept as it is): {ref}"]
     for plate, fp in factors.groupby("plate", sort=False):
         ok = fp[fp["adjustment"].notna()]
         if len(ok):
             report.append(
-                f"{plate}: {len(ok)} proteins adjusted, median {ok['adjustment'].median():+.2f} NPX "
-                f"(from {ok['adjustment'].min():+.2f} to {ok['adjustment'].max():+.2f}); "
-                f"bridging samples per protein: {int(ok['bridges'].min())}-{int(ok['bridges'].max())}")
+                f"{plate}: {len(ok)} assays adjusted by their adjustment factor (median "
+                f"{ok['adjustment'].median():+.2f} NPX, from {ok['adjustment'].min():+.2f} to "
+                f"{ok['adjustment'].max():+.2f}), each from {int(ok['bridges'].min())}"
+                + (f"-{int(ok['bridges'].max())}" if ok['bridges'].max() != ok['bridges'].min() else "")
+                + " bridge samples")
         none = fp[fp["adjustment"].isna()]
         if len(none):
-            report.append(f"  WARNING not adjusted (no usable bridging pair): "
+            report.append(f"  WARNING not adjusted (no usable bridge sample): "
                           f"{', '.join(map(str, none[label]))}")
         few = fp[fp["few_bridges"] & fp["adjustment"].notna()]
         if len(few):
-            report.append(f"  few bridging pairs (< {min_bridges}): {len(few)} proteins, e.g. "
+            report.append(f"  few bridge samples (< {min_bridges}): {len(few)} assays, e.g. "
                           f"{', '.join(map(str, few[label].head(5)))}")
     unknown = sorted(set(df.loc[~on_ref & np.isnan(adj), batch].dropna().astype(str))
                      - set(factors["plate"].astype(str)))
     if unknown:
-        report.append(f"WARNING plates without factors (not adjusted): {', '.join(unknown)}")
-    report.append("NPX, LOD and MaxLOD shifted together; originals in NPX_unbridged / LOD_unbridged")
-    report.append("next: bridge_check(...) on the result - the shifts should now be about 0")
+        report.append(f"WARNING plates without adjustment factors (left as they are): {', '.join(unknown)}")
+    report.append("NPX and LOD shifted together, so 'below the LOD' stays the same; the original "
+                  "values are in NPX_unbridged and LOD_unbridged")
+    report.append("check: plot_bridge_pca(before, after) - each bridge sample's two measurements "
+                  "should now lie together")
 
     df.attrs = dict(npx.attrs)
     df.attrs["bridge_report"] = report
