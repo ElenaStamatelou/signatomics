@@ -141,4 +141,6 @@ list of what to look at yourself (such as the outlier P07). See [In one call](fu
 
 ### Next
 
-Each step on its own, with all its choices: follow [the route](learn/index.md).
+- **[Learn](learn/index.md):** each step on its own, and what its output means.
+- **[Functions](functions/index.md):** every function with all its options.
+- **[Examples](examples/index.md):** the same steps on real Olink studies.

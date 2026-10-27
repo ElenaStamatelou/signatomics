@@ -9,11 +9,11 @@ hide:
 
 # Learn
 
-What each step does and what its output means: one lesson per step, in the order of the route.
+What each step does and what its output means: one lesson per step, in the order shown below.
 Every lesson uses the built-in synthetic data, so you get the same result. The lessons start
 with one plate; Bridging adds a second.
 { .lede }
 
 --8<-- "route.html"
 
-On real data: [Examples](../examples/index.md) runs the whole route on public Olink studies.
+On real data: [Examples](../examples/index.md) runs all the steps on public Olink studies.
