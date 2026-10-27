@@ -64,5 +64,5 @@ quality control removed it (QC status FAIL).
 
 Every option: [`add_sample_info`](../functions/samples.md#add_sample_info) in Functions.
 
-<div class="sg-lessonnav"><a href="../bridging/">&larr; Bridging</a><span>Next: the analysis table (coming)</span></div>
+<div class="sg-lessonnav"><a href="../bridging/">&larr; Bridging</a><a href="../analysis-table/">Analysis table &rarr;</a></div>
 

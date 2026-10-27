@@ -223,8 +223,8 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
     mann = test == "mann-whitney"
     if k == 2:
         name = "Mann-Whitney U test" if mann else "Welch's t-test"
-        what = ("Hodges-Lehmann shift" if mann else "mean NPX (= log2 fold change)")
-        lines.append(f"test: {name}; difference in {what}: {levels[1]} minus {ref}, "
+        what = ("Hodges-Lehmann shift in NPX" if mann else "difference in mean NPX (= log2 fold change)")
+        lines.append(f"test: {name}; effect: {what}, {levels[1]} minus {ref}, "
                      f"with {level:.0%} interval")
     elif ordered:
         lines.append("test: " + ("Jonckheere-Terpstra trend test" if mann else

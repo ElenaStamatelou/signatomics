@@ -1,6 +1,6 @@
 ---
 title: "Learn: the route through Olink data in Python"
-description: "The route through signatomics: preprocessing (data import, quality control, bridging, sample metadata), then statistical analysis and machine learning."
+description: "Lessons on Olink data in Python: preprocessing (data import, quality control, bridging, sample metadata), statistical analysis (analysis table, compare groups, correlate), then machine learning."
 hide:
   - toc
 ---

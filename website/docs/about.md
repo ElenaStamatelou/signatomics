@@ -18,10 +18,11 @@ and repeatable. If you work in R, Olink's own R package covers much of the clean
 
 ## Status
 
-Version 0.0.1, in development: reading, quality control, bridging and sample metadata
-work, with 82 automatic tests; `prepare` does them all in one call, and built-in example data
-lets you try everything. It installs from GitHub until the first release on the Python package index; see [Start](start.md). Function
-names may still change before the first release.
+Version 0.0.1, in development. Preprocessing (data import, quality control, bridging, sample
+metadata) and the first statistics (the analysis table, compare groups, correlate) work, with
+104 automatic tests; `prepare` does the preprocessing in one call, and built-in synthetic data
+lets you try everything. It installs from GitHub until the first release on the Python package
+index; see [Start](start.md). Function names may still change before the first release.
 
 ## Roadmap
 
@@ -31,8 +32,9 @@ names may still change before the first release.
   <li class="done">Bridging plates and projects, with independent checks</li>
   <li class="done">Sample metadata, with a report of every ID without a match</li>
   <li class="done">The usual route in one call (<code>prepare</code>), and built-in example data</li>
-  <li>One row per person, with an optional total-protein correction for samples whose dilution varies (saliva, urine)</li>
-  <li>Compare groups: one test chosen in advance, effect sizes with confidence intervals, FDR across all proteins</li>
+  <li class="done">The analysis table: one row per sample, one column per assay (<code>to_matrix</code>)</li>
+  <li class="done">Compare groups and correlate: one test chosen in advance, effect sizes with confidence intervals, FDR across all assays, volcano plots</li>
+  <li>An optional total-protein correction for samples whose dilution varies (saliva, urine)</li>
   <li>Find a biomarker signature: nested cross-validation, stability selection, calibration</li>
   <li>Check the signature: what each protein adds, learning and selection curves</li>
   <li>Adjust for confounders; before/after and repeated measurements</li>

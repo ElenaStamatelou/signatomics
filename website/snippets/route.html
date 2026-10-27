@@ -1,5 +1,5 @@
 <div class="sg-map">
-<svg viewBox="0 0 860 376" role="group" aria-label="The route through signatomics. Preprocessing: read your NPX file, quality control, then add your sample metadata. Bridging is an optional detour, for samples on several plates. All of it in one call with prepare. Statistical analysis and machine learning are coming.">
+<svg viewBox="0 0 860 376" role="group" aria-label="The route through signatomics. Preprocessing: read your NPX file, quality control, then add your sample metadata. Bridging is an optional detour, for samples on several plates. All of it in one call with prepare. Statistical analysis: the analysis table, compare groups and correlate; adjusting for confounders, before-and-after designs and machine learning are coming.">
   <text class="sec pre" x="20" y="22">PREPROCESSING</text>
   <path class="e" d="M90 96 H720"/>
   <path class="e plan" d="M300 96 C390 96 420 40 510 40 C600 40 630 96 720 96"/>
@@ -11,11 +11,13 @@
   <a href="/functions/prepare/"><text x="405" y="166" text-anchor="middle">all of it in one call: prepare</text></a>
 
   <text class="sec stat" x="20" y="214">STATISTICAL ANALYSIS</text>
-  <path class="e plan" d="M90 244 H620"/>
-  <g class="n stat"><title>Coming: does each protein differ between groups?</title><circle cx="90" cy="244" r="8"/><text x="90" y="272" text-anchor="middle">Compare groups</text></g>
-  <g class="n stat"><title>Coming: proteins and a continuous outcome</title><circle cx="260" cy="244" r="8"/><text x="260" y="272" text-anchor="middle">Correlate</text></g>
-  <g class="n stat"><title>Coming: adjust for age, sex and other confounders</title><circle cx="440" cy="244" r="8"/><text x="440" y="272" text-anchor="middle">Adjust for confounders</text></g>
-  <g class="n stat"><title>Coming: the same person measured twice or over time</title><circle cx="620" cy="244" r="8"/><text x="620" y="272" text-anchor="middle">Before and after</text></g>
+  <path class="e" d="M90 244 H410"/>
+  <path class="e plan" d="M410 244 H730"/>
+  <a href="/learn/analysis-table/"><g class="n done stat"><title>One row per sample, one column per assay</title><circle cx="90" cy="244" r="8"/><text x="90" y="272" text-anchor="middle">Analysis table</text></g></a>
+  <a href="/learn/compare-groups/"><g class="n done stat"><title>Does each assay differ between groups?</title><circle cx="250" cy="244" r="8"/><text x="250" y="272" text-anchor="middle">Compare groups</text></g></a>
+  <a href="/learn/correlate/"><g class="n done stat"><title>Assays and a continuous variable</title><circle cx="410" cy="244" r="8"/><text x="410" y="272" text-anchor="middle">Correlate</text></g></a>
+  <g class="n stat"><title>Coming: adjust for age, sex and other confounders</title><circle cx="570" cy="244" r="8"/><text x="570" y="272" text-anchor="middle">Adjust for confounders</text></g>
+  <g class="n stat"><title>Coming: the same person measured twice or over time</title><circle cx="730" cy="244" r="8"/><text x="730" y="272" text-anchor="middle">Before and after</text></g>
 
   <text class="sec ml" x="20" y="314">MACHINE LEARNING</text>
   <path class="e plan" d="M90 344 H270"/>

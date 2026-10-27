@@ -175,3 +175,16 @@ def test_correlate_matches_scipy_and_reports_intervals():
 def test_correlate_on_the_analysis_table(table):
     r = correlate(table, "age", verbose=False)
     assert len(r.table) == 92 and r.table["n"].eq(59).all()
+
+
+def test_volcano_for_two_groups_and_correlation(table):
+    import plotly.graph_objects as go
+
+    from signatomics.stats import plot_volcano
+    fig = plot_volcano(compare_groups(table, "group", reference="control", verbose=False))
+    assert isinstance(fig, go.Figure)
+    assert {"IL-17C", "OSM", "IL6"} <= {a.text for a in fig.layout.annotations}
+    assert isinstance(plot_volcano(correlate(table, "age", verbose=False)), go.Figure)
+    with pytest.raises(ValueError, match="effect"):
+        three = _toy({"a": 5, "b": 5, "c": 5}, {"x": list(range(15))})
+        plot_volcano(compare_groups(three, "group", verbose=False))

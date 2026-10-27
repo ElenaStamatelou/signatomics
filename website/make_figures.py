@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 
 import signatomics.olink as so
+from signatomics.stats import compare_groups, correlate, plot_volcano
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data" / "PAD000040"
@@ -65,6 +66,17 @@ def main():
     save("example_bridge_bland_altman", so.plot_bridge_bland_altman(both_clean))
     save("example_bridge_scatter", so.plot_bridge_scatter(both_clean, ["IL6", "CCL4", "HGF"]))
     save("example_bridge_pca", so.plot_bridge_pca(both_clean, so.bridge_plates(both_clean, verbose=False)))
+
+    # statistical analysis on the analysis table (the lessons drop the two broken samples)
+    prepared = so.prepare([so.example_file(1), so.example_file(2)], so.example_samples(),
+                          on="sample_id", verbose=False)
+    table = so.to_matrix(prepared, verbose=False)
+    clean_table = table.drop(["P07", "P33"])
+    save("example_volcano_outliers", plot_volcano(compare_groups(table, "group", reference="control",
+                                                                 verbose=False)))
+    save("example_volcano", plot_volcano(compare_groups(clean_table, "group", reference="control",
+                                                        verbose=False)))
+    save("example_volcano_age", plot_volcano(correlate(clean_table, "age", verbose=False)))
 
     # --- PAD000040 (public, CC0): the full example and the reference ---
     plates = pd.concat([so.read_npx(DATA / "inflam_NASH_dt1.raw.csv", verbose=False),

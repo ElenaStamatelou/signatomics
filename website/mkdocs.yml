@@ -84,6 +84,10 @@ nav:
           - Quality control: learn/quality-control.md
           - Bridging: learn/bridging.md
           - Sample metadata: learn/sample-metadata.md
+      - Statistical analysis:
+          - Analysis table: learn/analysis-table.md
+          - Compare groups: learn/compare-groups.md
+          - Correlate: learn/correlate.md
   - Functions:
       - functions/index.md
       - Preprocessing:
@@ -92,6 +96,9 @@ nav:
           - Quality control: functions/quality.md
           - Bridging: functions/bridging.md
           - Sample metadata: functions/samples.md
+      - Statistical analysis:
+          - Analysis table: functions/analysis-table.md
+          - Statistics: functions/stats.md
   - Examples:
       - examples/index.md
       - "Obesity and diabetes (PAD000040)": examples/pad000040.md

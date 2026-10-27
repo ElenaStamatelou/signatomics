@@ -21,7 +21,8 @@ biomarker models.
 
 ## What you can do
 
-Today: **preprocess** your Olink data (data import, quality control, bridging, sample metadata). Coming next:
-**statistical analysis** and **machine learning**. Click a step to open its lesson.
+Today: **preprocess** your Olink data (data import, quality control, bridging, sample metadata) and
+start the **statistical analysis** (compare groups, correlate). Coming next: adjusting for
+confounders, before-and-after designs and **machine learning**. Click a step to open its lesson.
 
 --8<-- "route.html"

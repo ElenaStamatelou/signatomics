@@ -10,7 +10,8 @@ build on it later.
 📖 **Documentation:** <https://signatomics.elenastamatelou.com>
 
 > **Status:** in development (version 0.0.1). The Olink module reads data, controls its quality,
-> bridges plates and adds your sample metadata. Functions may still change before the first release.
+> bridges plates and adds your sample metadata; `signatomics.stats` compares groups and correlates.
+> Functions may still change before the first release.
 
 ## What it does today
 
@@ -33,7 +34,9 @@ Each step also exists on its own, with every choice visible: `read_npx`,
   independent PCA check.
 - **Sample metadata:** adds your sample metadata (demographics, clinical data, ...) and reports every ID
   without a match.
-- **Charts:** interactive Plotly charts, colour-blind safe; sample IDs hidden by default.
+- **Statistics:** the analysis table (`to_matrix`: one row per sample), then `compare_groups` and
+  `correlate` on every assay, with effect sizes, 95% intervals and an FDR; `plot_volcano`.
+- **Charts:** interactive Plotly charts in one style, colour-blind safe; sample IDs hidden by default.
 
 ## Install
 
@@ -48,6 +51,7 @@ Requires Python 3.10 or newer. See [Start in 5 minutes](https://signatomics.elen
 | Module | Data | Status |
 |---|---|---|
 | `signatomics.olink` | Olink (PEA) proteomics: Target 96/48, Explore, Explore HT, Reveal | in development |
+| `signatomics.stats` | compare groups, correlate: every assay, effect sizes, FDR | in development |
 | core | one standard table, combining data types, biomarker signature with nested cross-validation | planned |
 | more modules | e.g. ELISA, microbiome | ideas |
 
