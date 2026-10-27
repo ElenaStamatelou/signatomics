@@ -70,7 +70,7 @@ def main():
     # statistical analysis on the analysis table (the lessons drop the two broken samples)
     prepared = so.prepare([so.example_file(1), so.example_file(2)], so.example_samples(),
                           on="sample_id", verbose=False)
-    table = so.to_matrix(prepared, verbose=False)
+    table = so.to_wide(prepared, verbose=False)
     clean_table = table.drop(["P07", "P33"])
     save("example_volcano_outliers", plot_volcano(compare_groups(table, "group", reference="control",
                                                                  verbose=False)))

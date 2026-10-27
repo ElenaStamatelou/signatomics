@@ -24,7 +24,7 @@ import signatomics.olink as so      # every function below: so.<function>
 | [Quality control](quality.md) | [`qc_report`](quality.md#qc_report) | [`apply_qc`](quality.md#apply_qc) | [`plot_npx_strip`](quality.md#plot_npx_strip), [`plot_sample_qc`](quality.md#plot_sample_qc), [`plot_below_lod`](quality.md#plot_below_lod), [`plot_group_by_plate`](quality.md#plot_group_by_plate) |
 | [Bridging](bridging.md) | [`bridge_check`](bridging.md#bridge_check) | [`bridge_plates`](bridging.md#bridge_plates) | [`plot_bridge_shift`](bridging.md#plot_bridge_shift), [`plot_bridge_bland_altman`](bridging.md#plot_bridge_bland_altman), [`plot_bridge_scatter`](bridging.md#plot_bridge_scatter), [`plot_bridge_pca`](bridging.md#plot_bridge_pca) |
 | [Sample metadata](samples.md) | | [`add_sample_info`](samples.md#add_sample_info) | |
-| [Analysis table](analysis-table.md) | | [`to_matrix`](analysis-table.md#to_matrix) | |
+| [Analysis table](analysis-table.md) | | [`to_wide`](analysis-table.md#to_wide) | |
 | [Statistics](stats.md) | | [`compare_groups`](stats.md#compare_groups), [`correlate`](stats.md#correlate) | [`plot_volcano`](stats.md#plot_volcano) |
 | [Example data](prepare.md#example_file) | | [`example_file`](prepare.md#example_file), [`example_data`](prepare.md#example_data), [`example_samples`](prepare.md#example_samples) | |
 

@@ -23,6 +23,9 @@ result = compare_groups(table, "group", reference="control")
 plot_volcano(result)
 ```
 
+`reference` is required: every difference is "other group minus reference", so here a positive
+difference means higher in cases.
+
 <div class="sg-example" markdown>
 <p class="tag">On the synthetic example files, without P07 and P33</p>
 
@@ -98,15 +101,15 @@ unclear. An FDR above 0.05 means *unclear*, which is a weaker statement than *no
     normal, prediabetes, diabetes): one trend test, with the slope per step.
 
     ```python
-    compare_groups(table, "diabetes")                                        # any difference
-    compare_groups(table, "diabetes", ordered=True,
+    compare_groups(table, "diabetes", reference="normal")                    # any difference
+    compare_groups(table, "diabetes", reference="normal", ordered=True,
                    order=["normal", "prediabetes", "diabetes"])              # a trend
     ```
 
 ??? "Can I see how often each assay is below the LOD in each group?"
 
     ```python
-    below = so.to_matrix(data, values="below_lod").drop(["P07", "P33"])
+    below = so.to_wide(data, values="below_lod").drop(["P07", "P33"])
     result = compare_groups(table, "group", reference="control", below_lod=below)
     ```
 

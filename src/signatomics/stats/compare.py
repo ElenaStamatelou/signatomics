@@ -167,19 +167,22 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
 
     Parameters
     ----------
-    table : the analysis table from ``to_matrix`` (one row per sample, one column per protein,
+    table : the analysis table from ``to_wide`` (one row per sample, one column per protein,
         your sample metadata included), or any table with ``proteins=`` given.
     group : the column that holds the groups, e.g. ``"diabetes"``. Samples without a group are
         left out and counted in the report.
     test : ``"welch"`` (default) or ``"mann-whitney"``; see the module text. The same test is
         used for every protein.
-    reference : the group the others are compared with; a difference is "other minus reference".
-        Default: the first group in ``order``, else the first in alphabetical order.
+    reference : required: the group the others are compared with, e.g. ``"control"``. Every
+        difference is "other group minus reference", so the reference sets the sign of every
+        result. With three or more groups, pairs without the reference follow ``order`` (the
+        earlier group is subtracted), else alphabetical order.
     ordered : the groups have a natural order: test for a trend over them (needs ``order`` or an
         ordered categorical column).
-    order : the groups in their order, e.g. ``["normal", "prediabetes", "diabetes"]``.
-    proteins : the protein columns; default ``table.attrs["proteins"]`` from ``to_matrix``.
-    below_lod : the table from ``to_matrix(npx, values="below_lod")``; adds the share of values
+    order : the groups in their order, for ``ordered=True``, e.g.
+        ``["normal", "prediabetes", "diabetes"]``.
+    proteins : the protein columns; default ``table.attrs["proteins"]`` from ``to_wide``.
+    below_lod : the table from ``to_wide(npx, values="below_lod")``; adds the share of values
         below the detection limit per group (a protein can differ by being detectable in one
         group only).
     alpha : the FDR level used in the report (default 0.05).
@@ -208,9 +211,9 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
     has_group = table[group].notna()
     groups = table.loc[has_group, group]
     levels = _levels(groups, reference, order)
-    ref = levels[0] if reference is None else reference
+    ref = reference
     k = len(levels)
-    if k == 2:
+    if k == 2 and ref is not None:
         levels = [ref] + [g for g in levels if g != ref]
     if k < 2:
         raise ValueError(f"Column '{group}' has fewer than two groups: there is nothing to compare.")
@@ -219,6 +222,11 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
     if too_small:
         raise ValueError(f"Groups with fewer than 2 samples: {', '.join(map(str, too_small))}. "
                          f"Leave them out or merge them with another group.")
+    if reference is None:
+        options = [f"reference={g!r}" for g in levels]
+        raise ValueError(f"Which group is the reference? Every difference is 'other group minus "
+                         f"reference', so the reference sets the sign of every result. "
+                         f"Pass {', '.join(options[:-1])} or {options[-1]}.")
 
     mann = test == "mann-whitney"
     if k == 2:
@@ -234,14 +242,15 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
         lines.append("test: " + ("Kruskal-Wallis" if mann else "Welch's ANOVA")
                      + "; then every pair of groups, Holm-adjusted within each protein")
     lines.append("groups: " + ", ".join(f"{g} {sizes[g]}" for g in levels)
-                 + (f" (reference: {ref})" if k == 2 or reference is not None else ""))
+                 + f" (reference: {ref})")
     if (~has_group).any():
         lines.append(f"left out: {_n(int((~has_group).sum()), 'sample')} without a value in '{group}'")
 
     center = "median" if mann else "mean"
     rows, pairs, skipped = [], [], []
     data = table.loc[has_group]
-    pair_levels = list(combinations(levels, 2))
+    # in a pair with the reference, the reference is subtracted; else the earlier group
+    pair_levels = [(b, a) if b == ref else (a, b) for a, b in combinations(levels, 2)]
     for p in prots:
         y = pd.to_numeric(data[p], errors="coerce")
         vals = [y[groups == g].dropna().to_numpy(dtype=float) for g in levels]

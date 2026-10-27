@@ -4,7 +4,7 @@ This is the hand-off between preprocessing and analysis: ``signatomics.stats`` (
 signature search) work on this table. Run it last, after quality control, bridging and adding
 your sample metadata.
 
-What ``to_matrix`` does, and reports:
+What ``to_wide`` does, and reports:
 
 - control samples and control assays are left out;
 - a sample measured more than once (a bridge sample after bridging, or a repeat) gets the
@@ -52,7 +52,7 @@ def _sample_columns(df: pd.DataFrame) -> list[str]:
     return [c for c in candidates if (per_sample[c] <= 1).all()]
 
 
-def to_matrix(npx: pd.DataFrame, *, values: str = "NPX", verbose: bool = True) -> pd.DataFrame:
+def to_wide(npx: pd.DataFrame, *, values: str = "NPX", verbose: bool = True) -> pd.DataFrame:
     """Turn the long NPX table into the analysis table: one row per sample, one column per assay.
 
     Parameters
@@ -68,7 +68,7 @@ def to_matrix(npx: pd.DataFrame, *, values: str = "NPX", verbose: bool = True) -
 
     Returns a table with one row per sample (index ``sample``: the tidy sample ID), your sample
     metadata first, then one column per assay. ``table.attrs["proteins"]`` lists the assay
-    columns; ``table.attrs["matrix_report"]`` holds the report.
+    columns; ``table.attrs["wide_report"]`` holds the report.
     """
     if values not in ("NPX", "below_lod"):
         raise ValueError("values must be 'NPX' or 'below_lod'.")
@@ -129,7 +129,7 @@ def to_matrix(npx: pd.DataFrame, *, values: str = "NPX", verbose: bool = True) -
         report.append(f"empty cells: {missing} (a sample without a value for that assay)")
 
     table.attrs["proteins"] = list(wide.columns)
-    table.attrs["matrix_report"] = report
+    table.attrs["wide_report"] = report
     if verbose:
         print("Analysis table\n  " + "\n  ".join(report))
     return table

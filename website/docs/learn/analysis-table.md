@@ -1,6 +1,6 @@
 ---
 title: "The analysis table: Olink data ready for statistics in Python"
-description: "Turn preprocessed Olink NPX data into the analysis table with to_matrix: one row per sample, one column per assay, sample metadata first."
+description: "Turn preprocessed Olink NPX data into the analysis table with to_wide: one row per sample, one column per assay, sample metadata first."
 hide:
   - toc
 ---
@@ -20,7 +20,7 @@ front. Every statistics function works on it.
 import signatomics.olink as so
 
 data = so.prepare([so.example_file(1), so.example_file(2)], so.example_samples(), on="sample_id")
-table = so.to_matrix(data)
+table = so.to_wide(data)
 ```
 
 <div class="sg-example" markdown>
@@ -70,7 +70,7 @@ almost every assay would look higher in cases.
 ??? "Can I see which values are below the LOD, per sample?"
 
     ```python
-    below = so.to_matrix(data, values="below_lod")    # True where the value is below the LOD
+    below = so.to_wide(data, values="below_lod")    # True where the value is below the LOD
     ```
 
     Give it to `compare_groups(..., below_lod=below)` to see the share below the LOD per group.
@@ -80,6 +80,6 @@ almost every assay would look higher in cases.
     Each bridge sample has two measurements, one per plate. Only after bridging are they on the
     same scale, so their average is meaningful.
 
-Every option: [`to_matrix`](../functions/analysis-table.md#to_matrix) in Functions.
+Every option: [`to_wide`](../functions/analysis-table.md#to_wide) in Functions.
 
 <div class="sg-lessonnav"><a href="../sample-metadata/">&larr; Sample metadata</a><a href="../compare-groups/">Compare groups &rarr;</a></div>

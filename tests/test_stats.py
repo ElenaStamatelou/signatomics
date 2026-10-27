@@ -1,11 +1,11 @@
-"""Tests for the analysis table (to_matrix) and signatomics.stats (compare_groups, correlate)."""
+"""Tests for the analysis table (to_wide) and signatomics.stats (compare_groups, correlate)."""
 
 import numpy as np
 import pandas as pd
 import pytest
 from scipy import stats
 
-from signatomics.olink import example_file, example_samples, prepare, to_matrix
+from signatomics.olink import example_file, example_samples, prepare, to_wide
 from signatomics.stats import compare_groups, correlate, fdr_bh, holm
 from signatomics.stats.compare import _jonckheere, _welch_anova, _welch_two
 
@@ -18,7 +18,7 @@ def prepared():
 
 @pytest.fixture(scope="module")
 def table(prepared):
-    return to_matrix(prepared, verbose=False)
+    return to_wide(prepared, verbose=False)
 
 
 def _toy(groups: dict, proteins: dict) -> pd.DataFrame:
@@ -29,31 +29,31 @@ def _toy(groups: dict, proteins: dict) -> pd.DataFrame:
     return t
 
 
-# --- to_matrix --------------------------------------------------------------------------------
+# --- to_wide --------------------------------------------------------------------------------
 
-def test_to_matrix_one_row_per_sample(prepared, table):
+def test_to_wide_one_row_per_sample(prepared, table):
     assert table.shape[0] == 59 and len(table.attrs["proteins"]) == 92
     assert list(table.columns[:4]) == ["sample_id", "group", "age", "sex"]
     assert "PlateID" not in table.columns and table.index.name == "sample"
 
 
-def test_to_matrix_averages_bridge_samples(prepared, table):
+def test_to_wide_averages_bridge_samples(prepared, table):
     p34 = prepared[(prepared["sample"] == "P34") & (prepared["Assay"] == "IL6")]
     assert len(p34) == 2
     assert table.loc["P34", "IL6"] == pytest.approx(p34["NPX"].mean())
 
 
-def test_to_matrix_below_lod(prepared):
-    b = to_matrix(prepared, values="below_lod", verbose=False)
+def test_to_wide_below_lod(prepared):
+    b = to_wide(prepared, values="below_lod", verbose=False)
     assert b["IL4"].mean() > 0.75 and b["IL6"].mean() < 0.2
     with pytest.raises(ValueError):
-        to_matrix(prepared, values="LOD")
+        to_wide(prepared, values="LOD")
 
 
-def test_to_matrix_names_shared_assay_by_olinkid():
+def test_to_wide_names_shared_assay_by_olinkid():
     rows = [{"SampleID": s, "OlinkID": o, "Assay": "IL6", "Panel": p, "NPX": v}
             for s, v in (("A", 1.0), ("B", 2.0)) for o, p in (("OID1", "Inflammation"), ("OID2", "Oncology"))]
-    t = to_matrix(pd.DataFrame(rows), verbose=False)
+    t = to_wide(pd.DataFrame(rows), verbose=False)
     assert t.attrs["proteins"] == ["IL6 (OID1)", "IL6 (OID2)"]
 
 
@@ -102,7 +102,7 @@ def test_reference_sets_the_direction(table):
 
 
 def test_mann_whitney_and_below_lod(prepared, table):
-    b = to_matrix(prepared, values="below_lod", verbose=False)
+    b = to_wide(prepared, values="below_lod", verbose=False)
     r = compare_groups(table, "group", reference="control", test="mann-whitney", below_lod=b,
                        verbose=False)
     t = r.table.set_index("protein")
@@ -113,7 +113,7 @@ def test_mann_whitney_and_below_lod(prepared, table):
 def test_untestable_proteins_are_reported_and_left_out_of_the_fdr():
     t = _toy({"a": 5, "b": 5}, {"flat": [1.0] * 10, "few": [1.0, np.nan, np.nan, np.nan, np.nan] + [2.0] * 5,
                                  "real": list(range(10))})
-    r = compare_groups(t, "group", verbose=False)
+    r = compare_groups(t, "group", reference="a", verbose=False)
     assert list(r.table["protein"]) == ["real"] and not r.table["fdr"].isna().any()
     assert dict(zip(r.not_tested["protein"], r.not_tested["reason"])) == {
         "flat": "no variation in either group", "few": "fewer than 2 values in a"}
@@ -122,7 +122,7 @@ def test_untestable_proteins_are_reported_and_left_out_of_the_fdr():
 def test_samples_without_group_are_dropped_and_counted():
     t = _toy({"a": 4, "b": 4}, {"x": [1, 2, 3, 4, 5, 6, 7, 8]})
     t.loc[0, "group"] = None
-    r = compare_groups(t, "group", verbose=False)
+    r = compare_groups(t, "group", reference="a", verbose=False)
     assert r.table.loc[0, "n_a"] == 3
     assert any("1 sample without a value" in line for line in r.lines)
 
@@ -139,7 +139,8 @@ def test_three_groups_omnibus_pairwise_and_trend():
     assert set(pw.loc[(pw["protein"] == "up") & (pw["reference"] == "low"), "group"]) == {"mid", "high"}
     assert pw.loc[pw["protein"] == "up", "omnibus_significant"].all()
     assert (pw["p_holm"] >= pw["p"]).all()
-    tr = compare_groups(t, "group", ordered=True, order=["low", "mid", "high"], verbose=False)
+    tr = compare_groups(t, "group", reference="low", ordered=True, order=["low", "mid", "high"],
+                        verbose=False)
     up = tr.table.set_index("protein").loc["up"]
     assert up["ci_low"] < 1 < up["ci_high"]     # true slope: 1 NPX per step
 
@@ -187,4 +188,27 @@ def test_volcano_for_two_groups_and_correlation(table):
     assert isinstance(plot_volcano(correlate(table, "age", verbose=False)), go.Figure)
     with pytest.raises(ValueError, match="effect"):
         three = _toy({"a": 5, "b": 5, "c": 5}, {"x": list(range(15))})
-        plot_volcano(compare_groups(three, "group", verbose=False))
+        plot_volcano(compare_groups(three, "group", reference="a", verbose=False))
+
+
+def test_the_reference_is_always_required():
+    t = _toy({"control": 4, "case": 4}, {"x": [1.0, 2, 3, 4, 6, 7, 8, 9]})
+    with pytest.raises(ValueError, match="reference='case' or reference='control'"):
+        compare_groups(t, "group", verbose=False)
+    with pytest.raises(ValueError, match="Which group is the reference"):
+        compare_groups(t, "group", order=["control", "case"], verbose=False)
+    assert compare_groups(t, "group", reference="control", verbose=False).table.loc[0, "difference"] == 5.0
+    three = _toy({"low": 4, "mid": 4, "high": 4}, {"x": [1.0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]})
+    with pytest.raises(ValueError, match="reference='high', reference='low' or reference='mid'"):
+        compare_groups(three, "group", verbose=False)
+    with pytest.raises(ValueError, match="Which group is the reference"):
+        compare_groups(three, "group", ordered=True, order=["low", "mid", "high"], verbose=False)
+
+
+def test_pairs_subtract_the_reference_then_the_earlier_group():
+    t = _toy({"low": 4, "mid": 4, "high": 4}, {"x": [1.0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]})
+    pw = compare_groups(t, "group", reference="mid", ordered=True, order=["low", "mid", "high"],
+                        verbose=False).pairwise
+    pairs = set(zip(pw["group"], pw["reference"]))
+    assert pairs == {("low", "mid"), ("high", "mid"), ("high", "low")}
+    assert pw.set_index("group").loc["low", "difference"] == -4.0

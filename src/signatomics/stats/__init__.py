@@ -1,6 +1,6 @@
 """Statistical analysis on the analysis table (one row per sample, one column per protein).
 
-Make the table with ``signatomics.olink.to_matrix``. Every function tests all proteins with one
+Make the table with ``signatomics.olink.to_wide``. Every function tests all proteins with one
 method chosen up front, applies the FDR (Benjamini-Hochberg) over all tested proteins, and
 reports effect sizes with confidence intervals next to the p-values.
 

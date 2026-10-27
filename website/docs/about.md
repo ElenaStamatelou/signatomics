@@ -32,7 +32,7 @@ index; see [Start](start.md). Function names may still change before the first r
   <li class="done">Bridging plates and projects, with independent checks</li>
   <li class="done">Sample metadata, with a report of every ID without a match</li>
   <li class="done">The usual route in one call (<code>prepare</code>), and built-in example data</li>
-  <li class="done">The analysis table: one row per sample, one column per assay (<code>to_matrix</code>)</li>
+  <li class="done">The analysis table: one row per sample, one column per assay (<code>to_wide</code>)</li>
   <li class="done">Compare groups and correlate: one test chosen in advance, effect sizes with confidence intervals, FDR across all assays, volcano plots</li>
   <li>An optional total-protein correction for samples whose dilution varies (saliva, urine)</li>
   <li>Find a biomarker signature: nested cross-validation, stability selection, calibration</li>

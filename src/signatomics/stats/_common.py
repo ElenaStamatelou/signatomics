@@ -9,11 +9,11 @@ import pandas as pd
 
 
 def _proteins(table: pd.DataFrame, proteins, exclude: list[str]) -> list[str]:
-    """The protein columns: given, or from ``to_matrix`` (``table.attrs["proteins"]``)."""
+    """The protein columns: given, or from ``to_wide`` (``table.attrs["proteins"]``)."""
     if proteins is None:
         proteins = table.attrs.get("proteins")
         if proteins is None:
-            raise ValueError("Which columns are proteins? Make the table with to_matrix, or pass "
+            raise ValueError("Which columns are proteins? Make the table with to_wide, or pass "
                              "proteins=[...] (a list of column names).")
     proteins = [p for p in proteins if p not in exclude]
     missing = [p for p in proteins if p not in table.columns]

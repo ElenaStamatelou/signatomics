@@ -34,7 +34,7 @@ Each step also exists on its own, with every choice visible: `read_npx`,
   independent PCA check.
 - **Sample metadata:** adds your sample metadata (demographics, clinical data, ...) and reports every ID
   without a match.
-- **Statistics:** the analysis table (`to_matrix`: one row per sample), then `compare_groups` and
+- **Statistics:** the analysis table (`to_wide`: one row per sample), then `compare_groups` and
   `correlate` on every assay, with effect sizes, 95% intervals and an FDR; `plot_volcano`.
 - **Charts:** interactive Plotly charts in one style, colour-blind safe; sample IDs hidden by default.
 

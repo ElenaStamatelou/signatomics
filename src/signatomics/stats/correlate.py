@@ -34,11 +34,11 @@ def correlate(table: pd.DataFrame, variable: str, *, method: str = "spearman", p
 
     Parameters
     ----------
-    table : the analysis table from ``to_matrix``, or any table with ``proteins=`` given.
+    table : the analysis table from ``to_wide``, or any table with ``proteins=`` given.
     variable : the column with the continuous variable, e.g. ``"hba1c"``. Samples without a
         value are left out and counted in the report.
     method : ``"spearman"`` (default) or ``"pearson"``.
-    proteins : the protein columns; default ``table.attrs["proteins"]`` from ``to_matrix``.
+    proteins : the protein columns; default ``table.attrs["proteins"]`` from ``to_wide``.
     alpha : the FDR level used in the report (default 0.05).
     level : confidence level of the intervals (default 0.95).
     verbose : print the report.

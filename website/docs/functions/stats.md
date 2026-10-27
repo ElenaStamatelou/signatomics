@@ -13,7 +13,7 @@ Test every assay of the analysis table, with one method chosen up front, effect 
 from signatomics.stats import compare_groups, correlate, plot_volcano
 ```
 
-Both test functions take the table from [`to_matrix`](analysis-table.md#to_matrix) (or any table
+Both test functions take the table from [`to_wide`](analysis-table.md#to_wide) (or any table
 with `proteins=[...]` given) and return a `StatsResult`: it prints as a report, and holds the
 tables `.table` (one row per assay, sorted by p), `.pairwise` (three or more groups) and
 `.not_tested` (assays left out, with the reason; they stay out of the FDR).
@@ -33,11 +33,11 @@ compare_groups(table, group, *, test="welch", reference=None, ordered=False, ord
 | `table` | DataFrame | — | the analysis table |
 | `group` | str | — | the column with the groups, e.g. `"diabetes"`; samples without a group are left out and counted |
 | `test` | str | `"welch"` | `"welch"`: Welch's t-test (two groups) or Welch's ANOVA (three or more); `"mann-whitney"`: Mann-Whitney U or Kruskal-Wallis |
-| `reference` | | `None` | the group the others are compared with; a difference is "other minus reference" |
+| `reference` | | required | the group the others are compared with, e.g. `"control"`. Every difference is "other group minus reference", so it sets the sign of every result. With three or more groups, pairs without the reference subtract the earlier group (in `order`, else alphabetical) |
 | `ordered` | bool | `False` | the groups have a natural order: one trend test (a line with robust HC3 errors for Welch; Jonckheere-Terpstra for Mann-Whitney) |
-| `order` | list | `None` | the groups in their order, e.g. `["normal", "prediabetes", "diabetes"]` |
-| `proteins` | list | `None` | the assay columns; default from `to_matrix` |
-| `below_lod` | DataFrame | `None` | `to_matrix(..., values="below_lod")`: adds the share below the LOD per group |
+| `order` | list | `None` | the groups in their order, for `ordered=True`, e.g. `["normal", "prediabetes", "diabetes"]` |
+| `proteins` | list | `None` | the assay columns; default from `to_wide` |
+| `below_lod` | DataFrame | `None` | `to_wide(..., values="below_lod")`: adds the share below the LOD per group |
 | `alpha` | float | `0.05` | the FDR level used in the report |
 | `level` | float | `0.95` | the level of the intervals |
 
@@ -52,8 +52,8 @@ choice follow the sample size more than the data, and mixes different tests in o
 tests allow each group its own spread, which keeps the error rate right when groups differ in
 size and spread.
 
-**Errors.** `ValueError` for fewer than two groups, a group with fewer than 2 samples, an
-unknown `test`, or `ordered=True` without an order. `KeyError` when `group` is missing from
+**Errors.** `ValueError` for fewer than two groups, a group with fewer than 2 samples,
+no `reference`, an unknown `test`, or `ordered=True` without an order. `KeyError` when `group` is missing from
 the table.
 
 ## `correlate`

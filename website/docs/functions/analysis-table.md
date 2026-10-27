@@ -1,6 +1,6 @@
 ---
-title: "to_matrix: the analysis table for Olink data"
-description: "to_matrix turns preprocessed Olink NPX data into the analysis table: one row per sample, one column per assay, sample metadata first."
+title: "to_wide: the analysis table for Olink data"
+description: "to_wide turns preprocessed Olink NPX data into the analysis table: one row per sample, one column per assay, sample metadata first."
 ---
 
 # Analysis table
@@ -8,12 +8,12 @@ description: "to_matrix turns preprocessed Olink NPX data into the analysis tabl
 The hand-off between preprocessing and statistics: one row per sample, one column per assay.
 { .lede }
 
-## `to_matrix`
+## `to_wide`
 
 Turn the long NPX table into the analysis table.
 
 ```python
-to_matrix(npx, *, values="NPX", verbose=True) -> pandas.DataFrame
+to_wide(npx, *, values="NPX", verbose=True) -> pandas.DataFrame
 ```
 
 | Argument | Type | Default | Meaning |
@@ -33,7 +33,7 @@ to_matrix(npx, *, values="NPX", verbose=True) -> pandas.DataFrame
 
 **Output.** A table with one row per sample (index `sample`, the tidy sample ID). The assay
 columns are listed in `table.attrs["proteins"]`, so the statistics functions know which columns
-hold NPX values; the report is in `table.attrs["matrix_report"]`.
+hold NPX values; the report is in `table.attrs["wide_report"]`.
 
 **Errors.** `ValueError` without an `NPX` column, for `values="below_lod"` without a `LOD`
 column, or when a sample-metadata column has the name of an assay.
@@ -41,7 +41,7 @@ column, or when a sample-metadata column has the name of an assay.
 **Example**
 
 ```python
-table = so.to_matrix(so.prepare([so.example_file(1), so.example_file(2)],
+table = so.to_wide(so.prepare([so.example_file(1), so.example_file(2)],
                                 so.example_samples(), on="sample_id"))
 ```
 
