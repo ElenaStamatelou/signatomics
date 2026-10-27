@@ -25,6 +25,7 @@ classifiers = [
 dependencies = [
     "numpy",
     "pandas",
+    "scipy",      # statistics (signatomics.stats)
 ]
 
 [project.urls]
