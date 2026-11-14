@@ -12,6 +12,8 @@ __pycache__/
 *.sav
 *.parquet
 *.xlsx
+# except the synthetic example data offered for download on the website
+!website/docs/assets/data/*.xlsx
 *.egg-info/
 build/
 dist/
