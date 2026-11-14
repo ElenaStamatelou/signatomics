@@ -14,8 +14,8 @@ description: "prepare runs reading, quality control, bridging and sample metadat
 Read, quality control, bridging and sample metadata in one call.
 
 ```python
-prepare(data, samples=None, *, on=None, group=None, show_ids=True,
-        verbose=True) -> pandas.DataFrame
+prepare(data, samples=None, *, on=None, group=None, drop_samples=None,
+        show_ids=True, verbose=True) -> pandas.DataFrame
 ```
 
 | Argument | Type | Default | Meaning |
@@ -24,13 +24,14 @@ prepare(data, samples=None, *, on=None, group=None, show_ids=True,
 | `samples` | path or DataFrame | `None` | your sample metadata (demographics, clinical data, ...); needs `on` |
 | `on` | str | `None` | the column in your sample metadata that holds the same IDs as `SampleID` in the NPX data |
 | `group` | str | `None` | a column of your sample metadata: also checks whether a group is missing from a plate, and whether the plate shift is the same in every group |
+| `drop_samples` | list or dict | `None` | samples you decided to remove after quality control, as in [`apply_qc`](quality.md#apply_qc): a list removes every measurement of those samples; a dict `{sample ID: PlateID}` removes only the one on that plate. Removed first, so the checks and the bridging run without them |
 | `show_ids` | bool | `True` | list sample IDs in the report; `False` gives counts only |
 | `verbose` | bool | `True` | print the report |
 
 **What it does**, in this order, each with its defaults:
 
 1. reads the files ([`read_npx`](reading.md#read_npx));
-2. quality control: looks ([`qc_report`](quality.md#qc_report)), then removes control samples,
+2. quality control: removes the samples in `drop_samples`, if given; looks ([`qc_report`](quality.md#qc_report)), then removes control samples,
    measurements with QC status FAIL (WARN is kept), empty measurements and extra copies of a
    sample measured twice on one plate; all assays are kept ([`apply_qc`](quality.md#apply_qc));
 3. with several plates and bridge samples: puts every plate on the scale of the reference plate

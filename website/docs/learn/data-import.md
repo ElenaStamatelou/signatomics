@@ -9,7 +9,7 @@ hide:
 
 # Data import
 
-<ol class="sg-route" aria-label="Preprocessing route"><li class="done here"><span class="dot"></span>Data import</li><li class="done"><span class="dot"></span><a href="../quality-control/">Quality control</a></li><li class="done opt"><span class="dot"></span><a href="../bridging/">Bridging</a></li><li class="done"><span class="dot"></span><a href="../sample-metadata/">Sample metadata</a></li></ol>
+<ol class="sg-route" aria-label="Preprocessing route"><li class="done here"><span class="dot"></span>Data import</li><li class="done"><span class="dot"></span><a href="../quality-control/">Quality control</a></li><li class="done opt"><span class="dot"></span><a href="../bridging/">Bridging</a></li><li class="done"><span class="dot"></span><a href="../sample-metadata/">Sample metadata</a></li><li class="done"><span class="dot"></span><a href="../analysis-table/">Analysis table</a></li></ol>
 
 **Use this when** you have an NPX file, the data file that Olink's software exports
 (`.csv`, `.txt`, `.xlsx` or `.parquet`), and want it as a table in Python.

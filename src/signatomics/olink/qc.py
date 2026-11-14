@@ -407,7 +407,7 @@ def apply_qc(npx: pd.DataFrame, *, drop_controls: bool = True, drop_fail: bool =
             hit = tidy.isin(set(_tidy_sample_ids(pd.Series(list(drop_samples), dtype="string"))))
         hit = hit.fillna(False).astype(bool)
         if hit.any():
-            drop_measurements(df[hit].drop_duplicates(keys), "chosen by you (drop_samples)")
+            drop_measurements(df[hit].drop_duplicates(keys), "your choice, drop_samples")
         else:
             done.append("drop_samples: none of the given samples was found")
 

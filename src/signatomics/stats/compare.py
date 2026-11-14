@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+from .adjust import adjusted_comparison, covariate_lines
 from ._common import StatsResult, _fmt_p, _n, _proteins, fdr_bh, holm
 
 TESTS = ("welch", "mann-whitney")
@@ -160,7 +161,7 @@ def _below_lod_shares(below_lod: pd.DataFrame, groups: pd.Series, proteins, leve
 
 
 def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", reference=None,
-                   ordered: bool = False, order=None, proteins=None,
+                   ordered: bool = False, order=None, proteins=None, covariates=None,
                    below_lod: pd.DataFrame | None = None, alpha: float = 0.05,
                    level: float = 0.95, verbose: bool = True) -> StatsResult:
     """Compare NPX between groups, protein by protein, with an FDR over all tested proteins.
@@ -182,6 +183,12 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
     order : the groups in their order, for ``ordered=True``, e.g.
         ``["normal", "prediabetes", "diabetes"]``.
     proteins : the protein columns; default ``table.attrs["proteins"]`` from ``to_wide``.
+    covariates : columns to adjust for, e.g. ``["age", "sex", "bmi"]``. Every protein is fitted
+        with the same model, ``NPX ~ group + covariates``, and robust (HC3) standard errors; no
+        covariate is chosen by its p-value. Text columns become one indicator per level. Samples
+        with a missing covariate are left out and counted. Only for ``test="welch"``. Run the
+        comparison with and without covariates and put the two volcano plots side by side with
+        ``plot_volcano_pair``.
     below_lod : the table from ``to_wide(npx, values="below_lod")``; adds the share of values
         below the detection limit per group (a protein can differ by being detectable in one
         group only).
@@ -205,7 +212,14 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
     if ordered and order is None and not (isinstance(table[group].dtype, pd.CategoricalDtype)
                                           and table[group].cat.ordered):
         raise ValueError("ordered=True needs the order of the groups: pass order=[...].")
-    prots = _proteins(table, proteins, exclude=[group])
+    covariates = [covariates] if isinstance(covariates, str) else list(covariates or [])
+    if covariates:
+        if test != "welch":
+            raise ValueError("Adjusting for covariates is available for test='welch'.")
+        absent = [c for c in covariates if c not in table.columns]
+        if absent:
+            raise KeyError(f"Covariate columns not in the table: {', '.join(absent)}")
+    prots = _proteins(table, proteins, exclude=[group] + covariates)
 
     lines = []
     has_group = table[group].notna()
@@ -249,6 +263,23 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
     center = "median" if mann else "mean"
     rows, pairs, skipped = [], [], []
     data = table.loc[has_group]
+    if covariates:
+        complete = data[covariates].notna().all(axis=1)
+        dropped = int((~complete).sum())
+        data, groups = data.loc[complete], groups.loc[complete]
+        sizes = groups.value_counts()
+        too_small = [g for g in levels if sizes.get(g, 0) < 2]
+        if too_small:
+            raise ValueError(f"Groups with fewer than 2 samples left after dropping samples with a "
+                             f"missing covariate: {', '.join(map(str, too_small))}.")
+        rows, pairs, skipped, n_terms = adjusted_comparison(data, prots, group, levels, ref, covariates,
+                                                            ordered=ordered, level=level)
+        what = ("difference in mean NPX (= log2 fold change), " + f"{levels[1]} minus {ref}" if k == 2
+                else "slope per group step" if ordered else "robust Wald F-test for any group difference, "
+                "then every pair of groups, Holm-adjusted within each protein")
+        lines[0] = f"test: linear model, NPX ~ {group} + {' + '.join(covariates)}; effect: {what}"
+        lines.extend(covariate_lines(table, group, covariates, len(data), dropped, n_terms))
+        prots = []                       # the unadjusted loop below has nothing left to do
     # in a pair with the reference, the reference is subtracted; else the earlier group
     pair_levels = [(b, a) if b == ref else (a, b) for a, b in combinations(levels, 2)]
     for p in prots:
@@ -299,7 +330,7 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
         shares = _below_lod_shares(below_lod, groups, list(out["protein"]), levels)
         out = out.merge(shares, left_on="protein", right_index=True, how="left")
     out = out.sort_values("p", kind="stable").reset_index(drop=True)
-    result = StatsResult(title="Group comparison", lines=lines, table=out,
+    result = StatsResult(title="Group comparison" + (" (adjusted)" if covariates else ""), lines=lines, table=out,
                          not_tested=pd.DataFrame(skipped, columns=["protein", "reason"]))
 
     if pairs:

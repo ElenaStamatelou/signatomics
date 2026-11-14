@@ -5,11 +5,11 @@ hide:
   - toc
 ---
 
-<p class="eyebrow">Statistical analysis · step 2</p>
+<p class="eyebrow">Statistical analysis · step 1</p>
 
 # Compare groups
 
-<ol class="sg-route" aria-label="Statistical analysis route"><li class="done"><span class="dot"></span><a href="../analysis-table/">Analysis table</a></li><li class="done here"><span class="dot"></span>Compare groups</li><li class="done"><span class="dot"></span><a href="../correlate/">Correlate</a></li></ol>
+<ol class="sg-route" aria-label="Statistical analysis route"><li class="done here"><span class="dot"></span>Compare groups</li><li class="done"><span class="dot"></span><a href="../correlate/">Correlate</a></li><li><span class="dot"></span>Before and after (coming)</li></ol>
 
 **Use this when** you want to know which assays differ between groups, such as cases and
 controls: every assay is tested, with the same test, and the results are corrected for testing
@@ -27,14 +27,14 @@ plot_volcano(result)
 difference means higher in cases.
 
 <div class="sg-example" markdown>
-<p class="tag">On the synthetic example files, without P07 and P33</p>
+<p class="tag">On the synthetic example files, P07 and P33 removed in quality control</p>
 
 ```text
 Group comparison
   test: Welch's t-test; effect: difference in mean NPX (= log2 fold change), case minus control, with 95% interval
-  groups: control 28, case 29 (reference: control)
+  groups: control 29, case 29 (reference: control)
   tested: 92 proteins
-  FDR below 0.05: 3 proteins: IL-17C (+1.27 NPX, FDR 2.2e-07), OSM (+1.02 NPX, FDR 4.0e-07), IL6 (+0.93 NPX, FDR 1.3e-04)
+  FDR below 0.05: 3 proteins: IL-17C (+1.28 NPX, FDR 1.4e-07), OSM (+0.98 NPX, FDR 1.2e-06), IL6 (+0.92 NPX, FDR 1.0e-04)
 ```
 
 </div>
@@ -44,23 +44,23 @@ Group comparison
 `result.table` has one row per assay, the clearest first:
 
 ```text
-protein  mean_control  mean_case  difference  ci_low  ci_high        p      fdr
- IL-17C          2.51       3.79        1.27    0.92     1.63 2.35e-09 2.16e-07
-    OSM          7.39       8.41        1.02   0.716     1.32 8.72e-09 4.01e-07
-    IL6          4.46       5.38       0.928   0.564     1.29 4.22e-06 0.000129
-    HGF          8.96       9.58       0.624   0.125     1.12   0.0153     0.35
-   IL18          4.24       3.84      -0.391  -0.717  -0.0657   0.0194     0.35
+   protein  mean_control  mean_case  difference  ci_low  ci_high        p      fdr
+    IL-17C           2.5       3.78        1.28   0.929     1.63 1.54e-09 1.42e-07
+       OSM          7.43       8.41       0.979   0.676     1.28 2.68e-08 1.23e-06
+       IL6          4.45       5.38       0.923   0.566     1.28 3.25e-06 9.96e-05
+IL-1 alpha          1.61       1.19      -0.419   -0.76  -0.0786   0.0168    0.311
+       HGF          8.94       9.54       0.592   0.101     1.08   0.0191    0.311
 ```
 
 | Column | What it means |
 |---|---|
-| `difference` | mean NPX of cases minus controls. NPX is a log2 scale, so this is the **log2 fold change**: +1 means twice as much protein in cases, +1.27 about 2.4 times |
+| `difference` | mean NPX of cases minus controls. NPX is a log2 scale, so this is the **log2 fold change**: +1 means twice as much protein in cases, +1.28 about 2.4 times |
 | `ci_low`, `ci_high` | the 95% interval: the differences the data are compatible with |
 | `p` | how surprising the difference would be if the groups did not differ, for this one assay |
 | `fdr` | the p-value corrected for testing 92 assays (Benjamini-Hochberg). Read this one: among the assays with an FDR below 0.05, on average at most 5% are false findings |
 
-IL-17C, OSM and IL6 are clearly higher in cases. HGF has a small p-value (0.015), but with 92
-assays tested, one such value is expected by chance: its FDR is 0.35. In the synthetic data HGF
+IL-17C, OSM and IL6 are clearly higher in cases. HGF has a small p-value (0.019), but with 92
+assays tested, a few such values are expected by chance: its FDR is 0.31. In the synthetic data HGF
 and CXCL10 do differ a little; with about 29 people per group, the evidence for them stays
 unclear. An FDR above 0.05 means *unclear*, which is a weaker statement than *no difference*.
 
@@ -75,6 +75,44 @@ unclear. An FDR above 0.05 means *unclear*, which is a weaker statement than *no
 <div class="sg-plot" data-src="../../assets/figures/example_volcano_outliers.json"><img src="../../assets/figures/example_volcano_outliers.svg" alt="Volcano plot with the two broken samples still in: almost every assay leans to the right" loading="lazy"></div>
 <figcaption markdown>The same comparison with P07 and P33 still in. Both are controls that read about 5 NPX too low on every assay, so almost every assay looks higher in cases. This is why quality control flags outliers and you decide what to do with them.</figcaption>
 </figure>
+
+### Adjust for age and sex
+
+When a variable such as age or sex differs between the groups and also affects the proteins, it
+can create a difference or hide one. `covariates` fits one linear model per assay,
+`NPX ~ group + age + sex`, the same model for every assay:
+
+```python
+from signatomics.stats import plot_volcano_pair
+
+adjusted = compare_groups(table, "group", reference="control", covariates=["age", "sex"])
+plot_volcano_pair(result, adjusted)
+```
+
+<div class="sg-example" markdown>
+<p class="tag">On the synthetic example files</p>
+
+```text
+Group comparison (adjusted)
+  test: linear model, NPX ~ group + age + sex; effect: difference in mean NPX (= log2 fold change), case minus control
+  groups: control 29, case 29 (reference: control)
+  adjusted for: age, sex (one model for every protein, robust HC3 standard errors; no covariate is chosen or dropped by its p-value)
+  tested: 92 proteins
+  FDR below 0.05: 3 proteins: IL-17C (+1.28 NPX, FDR 1.1e-06), OSM (+0.98 NPX, FDR 8.1e-06), IL6 (+0.94 NPX, FDR 4.7e-04)
+```
+
+</div>
+
+<figure class="sg-chart" markdown>
+<div class="sg-plot" data-src="../../assets/figures/example_volcano_pair.json"><img src="../../assets/figures/example_volcano_pair.svg" alt="Two volcano plots side by side: unadjusted and adjusted for age and sex" loading="lazy"></div>
+<figcaption markdown>`plot_volcano_pair(result, adjusted)`: unadjusted on the left, adjusted for age and sex on the right, on the same axes. The same three assays stand out in both.</figcaption>
+</figure>
+
+In the synthetic data age and sex play no role, so the differences stay the same. On real data
+they can shrink: the [PAD000040 example](../examples/pad000040.md#8-adjust-for-covariates) shows a
+case where adjusting for sex changes the conclusion. The covariates are chosen before looking at
+the results, from what is known to affect the proteins; choosing them by their p-values makes
+the FDR wrong.
 
 ??? "Why Welch's t-test, and why no normality test first?"
 
@@ -109,11 +147,11 @@ unclear. An FDR above 0.05 means *unclear*, which is a weaker statement than *no
 ??? "Can I see how often each assay is below the LOD in each group?"
 
     ```python
-    below = so.to_wide(data, values="below_lod").drop(["P07", "P33"])
+    below = so.to_wide(data, values="below_lod")
     result = compare_groups(table, "group", reference="control", below_lod=below)
     ```
 
-    The table then gets `below_lod_control` and `below_lod_case`. IL-17C is below the LOD in 39%
+    The table then gets `below_lod_control` and `below_lod_case`. IL-17C is below the LOD in 38%
     of the controls and in none of the cases: detectable mostly in cases, which is itself part
     of the finding.
 

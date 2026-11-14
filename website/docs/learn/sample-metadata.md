@@ -5,11 +5,11 @@ hide:
   - toc
 ---
 
-<p class="eyebrow">Preprocessing · last step</p>
+<p class="eyebrow">Preprocessing · step 3</p>
 
 # Sample metadata
 
-<ol class="sg-route" aria-label="Preprocessing route"><li class="done"><span class="dot"></span><a href="../data-import/">Data import</a></li><li class="done"><span class="dot"></span><a href="../quality-control/">Quality control</a></li><li class="done opt"><span class="dot"></span><a href="../bridging/">Bridging</a></li><li class="done here"><span class="dot"></span>Sample metadata</li></ol>
+<ol class="sg-route" aria-label="Preprocessing route"><li class="done"><span class="dot"></span><a href="../data-import/">Data import</a></li><li class="done"><span class="dot"></span><a href="../quality-control/">Quality control</a></li><li class="done opt"><span class="dot"></span><a href="../bridging/">Bridging</a></li><li class="done here"><span class="dot"></span>Sample metadata</li><li class="done"><span class="dot"></span><a href="../analysis-table/">Analysis table</a></li></ol>
 
 **Use this when** you have a table with information about each sample (demographics, clinical
 data, lab values, visit, ...) and want it next to the NPX values for the analysis. Olink calls

@@ -38,7 +38,7 @@ def _n(count: int, word: str) -> str:
 
 
 def prepare(data, samples=None, *, on: str | None = None, group: str | None = None,
-            show_ids: bool = True, verbose: bool = True) -> pd.DataFrame:
+            drop_samples=None, show_ids: bool = True, verbose: bool = True) -> pd.DataFrame:
     """Preprocess Olink data in one call, with the default choices of each step.
 
     Parameters
@@ -48,6 +48,10 @@ def prepare(data, samples=None, *, on: str | None = None, group: str | None = No
     samples : your sample metadata (a table or a path), optional. Needs ``on``.
     on : the column in your sample metadata that holds the same IDs as ``SampleID`` in the NPX data.
     group : a column of your sample metadata, e.g. ``"diabetes"``: adds the group checks.
+    drop_samples : samples you decided to remove after looking at quality control (e.g. an
+        outlier), as in ``apply_qc``: a list removes every measurement of those samples; a dict
+        ``{sample ID: PlateID}`` removes only the measurement on that plate. They are removed
+        first, so the checks and the bridging run without them.
     show_ids : list sample IDs in the report; ``False`` gives counts only (for sharing).
     verbose : print the report.
 
@@ -74,6 +78,14 @@ def prepare(data, samples=None, *, on: str | None = None, group: str | None = No
             + f", {_n(df[protein].nunique(), 'assay')}" + (f", {plates} plates" if plates > 1 else ""))
     short = [f"read {_n(files, 'file')}: {what}" if files else f"data: {what}"]
     details, to_check = list(short), []
+
+    # your own decisions first: the checks and the bridging then run without these measurements
+    if drop_samples is not None:
+        df = apply_qc(df, drop_controls=False, drop_fail=False, drop_empty=False, repeats="keep_all",
+                      drop_samples=drop_samples, show_ids=show_ids, verbose=False)
+        mine = [line.replace(" (your choice, drop_samples)", "") for line in df.attrs["qc_applied"][:-1]]
+        details += ["your choices (drop_samples):"] + [f"  {line}" for line in mine]
+        short += ["your choice: " + line for line in mine]
 
     # quality control (the group checks look your sample metadata up; nothing is added yet)
     look = qc_report(df, group=group, samples=samples if group else None, on=on,

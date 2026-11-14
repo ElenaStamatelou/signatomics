@@ -8,14 +8,18 @@ reports effect sizes with confidence intervals next to the p-values.
                       (Welch by default; Mann-Whitney / Kruskal-Wallis as an option)
 - ``correlate``       a continuous variable (Spearman by default; Pearson as an option)
 
+``compare_groups(..., covariates=[...])`` adjusts the comparison for the covariates you name
+(one linear model, the same for every protein; no covariate chosen by its p-value).
+
 Both return a ``StatsResult``: the summary lines plus the tables behind them.
-``plot_volcano`` draws a result: every protein's effect against its p-value.
+``plot_volcano`` draws a result: every protein's effect against its p-value;
+``plot_volcano_pair`` puts the unadjusted and adjusted result side by side.
 Helpers: ``fdr_bh`` (Benjamini-Hochberg) and ``holm``.
 """
 
 from ._common import StatsResult, fdr_bh, holm
 from .compare import compare_groups
 from .correlate import correlate
-from .plots import plot_volcano
+from .plots import plot_volcano, plot_volcano_pair
 
-__all__ = ["compare_groups", "correlate", "plot_volcano", "StatsResult", "fdr_bh", "holm"]
+__all__ = ["compare_groups", "correlate", "plot_volcano", "plot_volcano_pair", "StatsResult", "fdr_bh", "holm"]

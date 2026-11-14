@@ -5,11 +5,11 @@ hide:
   - toc
 ---
 
-<p class="eyebrow">Statistical analysis · step 3</p>
+<p class="eyebrow">Statistical analysis · step 2</p>
 
 # Correlate
 
-<ol class="sg-route" aria-label="Statistical analysis route"><li class="done"><span class="dot"></span><a href="../analysis-table/">Analysis table</a></li><li class="done"><span class="dot"></span><a href="../compare-groups/">Compare groups</a></li><li class="done here"><span class="dot"></span>Correlate</li></ol>
+<ol class="sg-route" aria-label="Statistical analysis route"><li class="done"><span class="dot"></span><a href="../compare-groups/">Compare groups</a></li><li class="done here"><span class="dot"></span>Correlate</li><li><span class="dot"></span>Before and after (coming)</li></ol>
 
 **Use this when** you want to know which assays rise or fall with a continuous variable, such
 as age, BMI or a lab value: every assay is tested, and the results are corrected for testing
@@ -24,14 +24,14 @@ plot_volcano(result)
 ```
 
 <div class="sg-example" markdown>
-<p class="tag">On the synthetic example files, without P07 and P33</p>
+<p class="tag">On the synthetic example files, P07 and P33 removed in quality control</p>
 
 ```text
 Correlation
   test: Spearman's rank correlation with age, 95% interval
-  samples: 57 with a value
+  samples: 58 with a value
   tested: 92 proteins
-  FDR below 0.05: none (lowest FDR 0.47)
+  FDR below 0.05: none (lowest FDR 0.5)
 ```
 
 </div>
@@ -40,9 +40,9 @@ Correlation
 
 ```text
 protein  n      r  ci_low  ci_high      p   fdr
-  CXCL9 57 -0.334  -0.552  -0.0735  0.011 0.467
-TNFRSF9 57  0.319  0.0573     0.54 0.0155 0.467
-   CST5 57  0.315  0.0528    0.537  0.017 0.467
+  CXCL9 58 -0.334   -0.55  -0.0753 0.0105   0.5
+   CST5 58  0.318   0.059    0.538 0.0148   0.5
+TNFRSF9 58  0.314  0.0545    0.534 0.0163   0.5
 ```
 
 | Column | What it means |
@@ -52,7 +52,7 @@ TNFRSF9 57  0.319  0.0573     0.54 0.0155 0.467
 | `p`, `fdr` | as in [Compare groups](compare-groups.md): read the FDR, corrected for 92 assays |
 
 In the synthetic data age plays no role, and the result says exactly that: CXCL9 has a p-value
-of 0.011, yet its FDR is 0.47. Among 92 assays, a few p-values this small are expected by chance
+of 0.011, yet its FDR is 0.5. Among 92 assays, a few p-values this small are expected by chance
 alone. This is what the FDR protects you from.
 
 <figure class="sg-chart" markdown>
@@ -83,4 +83,4 @@ alone. This is what the FDR protects you from.
 
 Every option: [`correlate` and `plot_volcano`](../functions/stats.md) in Functions.
 
-<div class="sg-lessonnav"><a href="../compare-groups/">&larr; Compare groups</a><span>Next: adjust for confounders (coming)</span></div>
+<div class="sg-lessonnav"><a href="../compare-groups/">&larr; Compare groups</a><a href="../find-signature/">Find a signature &rarr;</a></div>

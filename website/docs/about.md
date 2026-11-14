@@ -34,10 +34,10 @@ index; see [Start](start.md). Function names may still change before the first r
   <li class="done">The usual route in one call (<code>prepare</code>), and built-in example data</li>
   <li class="done">The analysis table: one row per sample, one column per assay (<code>to_wide</code>)</li>
   <li class="done">Compare groups and correlate: one test chosen in advance, effect sizes with confidence intervals, FDR across all assays, volcano plots</li>
-  <li>An optional total-protein correction for samples whose dilution varies (saliva, urine)</li>
-  <li>Find a biomarker signature: nested cross-validation, stability selection, calibration</li>
-  <li>Check the signature: what each protein adds, learning and selection curves</li>
-  <li>Adjust for confounders; before/after and repeated measurements</li>
+  <li class="done">Adjust for confounders: one model per assay, unadjusted and adjusted volcano plots side by side</li>
+  <li class="done">Find a biomarker signature: nested cross-validation, how often each protein is chosen, an honest estimate of performance</li>
+  <li class="done">Check the signature: what each protein adds, learning and selection curves</li>
+  <li>Before/after and repeated measurements</li>
   <li>First release on the Python package index, with a citable DOI</li>
   <li>Later: ELISA and microbiome modules, and combining data types</li>
 </ul>

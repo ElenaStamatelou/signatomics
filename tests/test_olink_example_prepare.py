@@ -85,3 +85,16 @@ def test_prepare_one_plate_is_not_bridged():
 def test_prepare_needs_on_with_samples():
     with pytest.raises(ValueError, match="on="):
         prepare(example_data(), example_samples())
+
+
+def test_prepare_drop_samples_is_applied_first_and_reported():
+    out = prepare(example_data(), drop_samples={"P07": "Plate 1", "P33": "Plate 2"}, verbose=False)
+    report = out.attrs["prepare_report"]
+    assert "your choice: removed 2 measurements: P07, P33" in report
+    assert not any("to look at" in line for line in report)        # nothing left to decide
+    assert "P07" not in set(out["SampleID"])
+    assert set(out.loc[out["SampleID"] == "P33", "PlateID"]) == {"Plate 1"}
+    steps = bridge_plates(apply_qc(example_data(), drop_samples={"P07": "Plate 1", "P33": "Plate 2"},
+                                   verbose=False), verbose=False)
+    pd.testing.assert_frame_equal(out.reset_index(drop=True)[steps.columns], steps.reset_index(drop=True),
+                                  check_like=True)

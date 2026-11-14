@@ -1,7 +1,7 @@
 # signatomics
 
-**Python tools for Olink proteomics data: read, quality control, bridging and sample metadata, with
-every step reported.**
+**Python tools for Olink proteomics data: read, quality control, bridging, statistics and biomarker
+signatures, with every step reported.**
 
 signatomics is a family of Python tools for finding biomarker signatures in omics data. The
 first module, `signatomics.olink`, works with **Olink (PEA) proteomics** data. More modules will
@@ -10,7 +10,8 @@ build on it later.
 📖 **Documentation:** <https://signatomics.elenastamatelou.com>
 
 > **Status:** in development (version 0.0.1). The Olink module reads data, controls its quality,
-> bridges plates and adds your sample metadata; `signatomics.stats` compares groups and correlates.
+> bridges plates and adds your sample metadata; `signatomics.stats` compares groups and correlates;
+> `signatomics.signature` finds and checks a biomarker signature.
 > Functions may still change before the first release.
 
 ## What it does today
@@ -34,8 +35,11 @@ Each step also exists on its own, with every choice visible: `read_npx`,
   independent PCA check.
 - **Sample metadata:** adds your sample metadata (demographics, clinical data, ...) and reports every ID
   without a match.
-- **Statistics:** the analysis table (`to_wide`: one row per sample), then `compare_groups` and
-  `correlate` on every assay, with effect sizes, 95% intervals and an FDR; `plot_volcano`.
+- **Analysis table:** `to_wide` gives one row per sample and one column per assay, the last step of preprocessing.
+- **Statistics:** `compare_groups` and `correlate` on every assay, with effect sizes, 95% intervals and
+  an FDR; adjusting for covariates; `plot_volcano` and `plot_volcano_pair` (unadjusted | adjusted).
+- **Biomarker signature:** `find_signature` with nested cross-validation (binary, multiclass or a
+  number), then `protein_contributions`, `learning_curve` and `selection_curve`.
 - **Charts:** interactive Plotly charts in one style, colour-blind safe; sample IDs hidden by default.
 
 ## Install
@@ -51,8 +55,9 @@ Requires Python 3.10 or newer. See [Start in 5 minutes](https://signatomics.elen
 | Module | Data | Status |
 |---|---|---|
 | `signatomics.olink` | Olink (PEA) proteomics: Target 96/48, Explore, Explore HT, Reveal | in development |
-| `signatomics.stats` | compare groups, correlate: every assay, effect sizes, FDR | in development |
-| core | one standard table, combining data types, biomarker signature with nested cross-validation | planned |
+| `signatomics.stats` | compare groups, correlate, adjust for covariates: every assay, effect sizes, FDR | in development |
+| `signatomics.signature` | biomarker signature with nested cross-validation, and its checks | in development |
+| core | one standard table, combining data types | planned |
 | more modules | e.g. ELISA, microbiome | ideas |
 
 ## Repository layout

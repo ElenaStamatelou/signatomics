@@ -1,6 +1,6 @@
 ---
 title: "Learn: the route through Olink data in Python"
-description: "Lessons on Olink data in Python: preprocessing (data import, quality control, bridging, sample metadata), statistical analysis (analysis table, compare groups, correlate), then machine learning."
+description: "Lessons on Olink data in Python: preprocessing (data import, quality control, bridging, sample metadata, analysis table), statistical analysis (compare groups, correlate, adjust for confounders) and machine learning (find and check a biomarker signature)."
 hide:
   - toc
 ---

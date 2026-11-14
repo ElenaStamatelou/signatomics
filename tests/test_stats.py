@@ -212,3 +212,81 @@ def test_pairs_subtract_the_reference_then_the_earlier_group():
     pairs = set(zip(pw["group"], pw["reference"]))
     assert pairs == {("low", "mid"), ("high", "mid"), ("high", "low")}
     assert pw.set_index("group").loc["low", "difference"] == -4.0
+
+
+# --- adjusted comparison ------------------------------------------------------------------------
+
+def _hc3_reference(y, X):
+    """Independent HC3 fit written the textbook way (hat matrix from the pseudo-inverse)."""
+    H = X @ np.linalg.pinv(X)
+    beta = np.linalg.pinv(X) @ y
+    e = y - X @ beta
+    w = (e / (1 - np.diag(H))) ** 2
+    bread = np.linalg.inv(X.T @ X)
+    return beta, bread @ (X.T * w) @ X @ bread
+
+
+def test_adjusted_difference_matches_a_textbook_fit(table):
+    two = table[table["group"].isin(["control", "case"])].copy()
+    two["female"] = (two["sex"] == two["sex"].iloc[0]).astype(float)
+    r = compare_groups(two, "group", reference="control", covariates=["age", "sex"], verbose=False).table
+    prot = r.loc[0, "protein"]
+    y = two[prot].to_numpy()
+    X = np.column_stack([np.ones(len(two)), (two["group"] == "case").astype(float),
+                         two["age"].astype(float), (two["sex"] != two["sex"].iloc[0]).astype(float)])
+    beta, vc = _hc3_reference(y, X)
+    se = np.sqrt(vc[1, 1])
+    df = len(y) - X.shape[1]
+    assert r.loc[0, "difference"] == pytest.approx(beta[1])
+    assert r.loc[0, "p"] == pytest.approx(2 * stats.t.sf(abs(beta[1] / se), df))
+    q = stats.t.ppf(0.975, df)
+    assert (r.loc[0, "ci_low"], r.loc[0, "ci_high"]) == pytest.approx((beta[1] - q * se, beta[1] + q * se))
+
+
+def test_adjusting_for_a_confounder_removes_a_false_difference():
+    rng = np.random.default_rng(3)
+    n = 200
+    age = rng.normal(60, 8, n)
+    case = (age + rng.normal(0, 5, n) > 62).astype(int)           # cases are older
+    t = pd.DataFrame({"group": np.where(case, "case", "control"), "age": age,
+                      "A": 0.08 * age + rng.normal(0, 0.5, n)})   # the protein follows age only
+    t.attrs["proteins"] = ["A"]
+    plain = compare_groups(t, "group", reference="control", verbose=False).table.loc[0]
+    adj = compare_groups(t, "group", reference="control", covariates="age", verbose=False).table.loc[0]
+    assert plain["p"] < 1e-4 and adj["p"] > 0.05 and abs(adj["difference"]) < abs(plain["difference"]) / 2
+
+
+def test_adjusted_three_groups_trend_and_missing_covariates(table):
+    t = table.copy()
+    t.loc[t.index[:3], "age"] = np.nan
+    t["step"] = np.where(t["age"] > t["age"].median(), "old", "young")
+    three = t.assign(group=np.where(t["age"] > 55, "high", np.where(t["age"] > 45, "mid", "low")))
+    r = compare_groups(three, "group", reference="low", covariates=["sex"], verbose=False)
+    assert {"statistic", "p", "fdr"} <= set(r.table.columns) and set(r.pairwise["group"]) >= {"mid", "high"}
+    tr = compare_groups(three, "group", reference="low", ordered=True, order=["low", "mid", "high"],
+                        covariates=["sex"], verbose=False)
+    assert "slope" in tr.table.columns
+    ra = compare_groups(t, "group", reference="control", covariates=["age"], verbose=False)
+    assert any("missing covariate" in line for line in ra.lines)
+    assert ra.table["n_control"].add(ra.table["n_case"]).max() == t["age"].notna().sum() - (t["group"].isna()).sum()
+
+
+def test_adjusted_without_covariates_equals_the_plain_trend(table):
+    three = table.assign(group=np.where(table["age"] > 55, "high", np.where(table["age"] > 45, "mid", "low")))
+    kw = dict(reference="low", ordered=True, order=["low", "mid", "high"], verbose=False)
+    plain = compare_groups(three, "group", **kw).table.set_index("protein")
+    adj = compare_groups(three, "group", covariates=["sex"], **kw).table.set_index("protein")
+    assert (plain["slope"] - adj.loc[plain.index, "slope"]).abs().max() < 0.5          # same question, similar size
+    with pytest.raises(ValueError, match="welch"):
+        compare_groups(three, "group", test="mann-whitney", covariates=["sex"], **kw)
+    with pytest.raises(KeyError, match="nope"):
+        compare_groups(three, "group", covariates=["nope"], **kw)
+
+
+def test_volcano_pair(table):
+    import plotly.graph_objects as go
+
+    from signatomics.stats import plot_volcano_pair
+    a = compare_groups(table, "group", reference="control", verbose=False)
+    b = compare_groups(table, "group", reference="control", covariates=["age"], verbose=False)
+    assert isinstance(plot_volcano_pair(a, b), go.Figure)

@@ -9,7 +9,7 @@ hide:
 
 # Quality control
 
-<ol class="sg-route" aria-label="Preprocessing route"><li class="done"><span class="dot"></span><a href="../data-import/">Data import</a></li><li class="done here"><span class="dot"></span>Quality control</li><li class="done opt"><span class="dot"></span><a href="../bridging/">Bridging</a></li><li class="done"><span class="dot"></span><a href="../sample-metadata/">Sample metadata</a></li></ol>
+<ol class="sg-route" aria-label="Preprocessing route"><li class="done"><span class="dot"></span><a href="../data-import/">Data import</a></li><li class="done here"><span class="dot"></span>Quality control</li><li class="done opt"><span class="dot"></span><a href="../bridging/">Bridging</a></li><li class="done"><span class="dot"></span><a href="../sample-metadata/">Sample metadata</a></li><li class="done"><span class="dot"></span><a href="../analysis-table/">Analysis table</a></li></ol>
 
 **Use this when** you want to see what is wrong with your data before you analyse it, and
 remove what should stay out of the analysis.
@@ -113,14 +113,33 @@ assay stays, and so does the outlier P07: those are your decisions.
 
     Run your analysis with and without them: if the results agree, the warnings did not matter.
 
-??? "How do I remove an outlier I found, such as P07?"
+### 3. Decide: remove what quality control flagged
 
-    ```python
-    clean = so.apply_qc(data, drop_samples=["P07"])
-    ```
+The quality report and the sample chart flagged P07: it reads about 5 NPX too low on every assay,
+a sign of a technical problem with that sample. Here you decide to remove it:
 
-    The report lists the removal. With several plates, `drop_samples={"P07": "Plate 1"}` removes
-    it from that plate only.
+```python
+clean = so.apply_qc(data, drop_samples=["P07"])
+```
+
+<div class="sg-example" markdown>
+<p class="tag">On the synthetic example file</p>
+
+```text
+Quality steps applied
+  removed 8 control samples: 3 NEGATIVE_CONTROL, 3 PLATE_CONTROL, 2 SAMPLE_CONTROL
+  removed 1 measurement (your choice, drop_samples): P07
+  removed 1 measurement (QC status FAIL): P20
+  kept: 38 samples, 92 assays
+```
+
+</div>
+
+The decision is made once, here, and every later step works without P07: bridging, the analysis
+table, the statistics and the signature. With several plates, give the plate too:
+`drop_samples={"P07": "Plate 1"}` removes only that measurement. [Bridging](bridging.md) flags a
+second one, P33 on Plate 2, and the [analysis table](analysis-table.md) shows how both decisions
+go into `prepare`.
 
 ??? "Should I remove the assays that are mostly below the LOD?"
 

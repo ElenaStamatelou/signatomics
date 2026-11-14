@@ -5,7 +5,7 @@ description: "to_wide turns preprocessed Olink NPX data into the analysis table:
 
 # Analysis table
 
-The hand-off between preprocessing and statistics: one row per sample, one column per assay.
+The last step of preprocessing: one row per sample, one column per assay, ready for statistics and machine learning.
 { .lede }
 
 ## `to_wide`

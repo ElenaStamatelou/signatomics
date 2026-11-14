@@ -9,7 +9,7 @@ hide:
 
 # Bridging
 
-<ol class="sg-route" aria-label="Preprocessing route"><li class="done"><span class="dot"></span><a href="../data-import/">Data import</a></li><li class="done"><span class="dot"></span><a href="../quality-control/">Quality control</a></li><li class="done here opt"><span class="dot"></span>Bridging</li><li class="done"><span class="dot"></span><a href="../sample-metadata/">Sample metadata</a></li></ol>
+<ol class="sg-route" aria-label="Preprocessing route"><li class="done"><span class="dot"></span><a href="../data-import/">Data import</a></li><li class="done"><span class="dot"></span><a href="../quality-control/">Quality control</a></li><li class="done here opt"><span class="dot"></span>Bridging</li><li class="done"><span class="dot"></span><a href="../sample-metadata/">Sample metadata</a></li><li class="done"><span class="dot"></span><a href="../analysis-table/">Analysis table</a></li></ol>
 
 **Use this when** your samples were measured on several plates or in several projects, and
 some samples were measured on both: the **bridge samples**. With one plate, go straight to
@@ -75,6 +75,15 @@ from pulling it.
 <div class="sg-plot" data-src="../../assets/figures/example_bridge_pca.json"><img src="../../assets/figures/example_bridge_pca.svg" alt="PCA of the bridge samples before and after bridging, coloured by plate" loading="lazy"></div>
 <figcaption markdown>`so.plot_bridge_pca(clean, combined)`: check that it worked. Each line joins one bridge sample's two measurements. After bridging they lie close together and the plates overlap. The point far from the rest is P33, the broken tube.</figcaption>
 </figure>
+
+**Your decision on P33.** Only its measurement on Plate 2 is broken; on Plate 1 it reads like the
+others. Remove that one measurement in [quality control](quality-control.md#3-decide-remove-what-quality-control-flagged),
+then bridge again: P33 keeps its Plate 1 value and the bridging uses 11 good bridge samples.
+
+```python
+clean = so.apply_qc(data, drop_samples={"P07": "Plate 1", "P33": "Plate 2"})
+combined = so.bridge_plates(clean)
+```
 
 
 ??? "Which plate is the reference, and can I choose it?"

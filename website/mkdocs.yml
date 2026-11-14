@@ -4,7 +4,7 @@
 
 site_name: signatomics
 site_url: https://signatomics.elenastamatelou.com/
-site_description: Python tools for Olink (PEA) proteomics data. Read, quality control, bridging and sample metadata, with every step reported.
+site_description: Python tools for Olink (PEA) proteomics data. Read, quality control, bridging, statistics and biomarker signatures, with every step reported.
 site_author: Elena Stamatelou
 # GitHub link with stars/forks in the header: Elena wants it ALWAYS kept (standing rule, 15 Oct 2026)
 repo_url: https://github.com/ElenaStamatelou/signatomics
@@ -79,15 +79,19 @@ nav:
   - Start: start.md
   - Learn:
       - learn/index.md
+      - Example data: learn/example-data.md
       - Preprocessing:
           - Data import: learn/data-import.md
           - Quality control: learn/quality-control.md
           - Bridging: learn/bridging.md
           - Sample metadata: learn/sample-metadata.md
-      - Statistical analysis:
           - Analysis table: learn/analysis-table.md
+      - Statistical analysis:
           - Compare groups: learn/compare-groups.md
           - Correlate: learn/correlate.md
+      - Machine learning:
+          - Find a signature: learn/find-signature.md
+          - Check the signature: learn/check-signature.md
   - Functions:
       - functions/index.md
       - Preprocessing:
@@ -96,9 +100,11 @@ nav:
           - Quality control: functions/quality.md
           - Bridging: functions/bridging.md
           - Sample metadata: functions/samples.md
-      - Statistical analysis:
           - Analysis table: functions/analysis-table.md
+      - Statistical analysis:
           - Statistics: functions/stats.md
+      - Machine learning:
+          - Signature: functions/signature.md
   - Examples:
       - examples/index.md
       - "Obesity and diabetes (PAD000040)": examples/pad000040.md

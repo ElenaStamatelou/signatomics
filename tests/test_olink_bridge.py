@@ -196,6 +196,6 @@ def test_drop_samples_everywhere_or_on_one_plate(npx):
     assert "B_03" not in set(gone["SampleID"])
     one = apply_qc(npx, drop_samples={"B_03": "plate2"}, verbose=False)
     assert set(one.loc[one["SampleID"] == "B_03", "PlateID"]) == {"plate1"}
-    assert "chosen by you" in " ".join(one.attrs["qc_applied"])
+    assert "your choice, drop_samples" in " ".join(one.attrs["qc_applied"])
     none = apply_qc(npx, drop_samples=["ZZZ"], verbose=False)
     assert "none of the given samples" in " ".join(none.attrs["qc_applied"])

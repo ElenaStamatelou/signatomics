@@ -1,6 +1,6 @@
 ---
 title: "Functions: every signatomics function for Olink data"
-description: "Every function of signatomics.olink: reading NPX files, adding sample metadata, quality control, plate bridging, charts, and the one-call route."
+description: "Every signatomics function for Olink data: reading NPX files, quality control, plate bridging, sample metadata, the analysis table, statistics and biomarker signatures."
 hide:
   - toc
 ---
@@ -14,7 +14,9 @@ work. To learn what each step does and what its output means, see [Learn](../lea
 { .lede }
 
 ```python
-import signatomics.olink as so      # every function below: so.<function>
+import signatomics.olink as so      # preprocessing: so.<function>
+from signatomics.stats import ...   # statistics
+from signatomics.signature import ...   # machine learning
 ```
 
 | Step | Look (your data stays as it is) | Act (returns a new table) | Charts |
@@ -25,7 +27,8 @@ import signatomics.olink as so      # every function below: so.<function>
 | [Bridging](bridging.md) | [`bridge_check`](bridging.md#bridge_check) | [`bridge_plates`](bridging.md#bridge_plates) | [`plot_bridge_shift`](bridging.md#plot_bridge_shift), [`plot_bridge_bland_altman`](bridging.md#plot_bridge_bland_altman), [`plot_bridge_scatter`](bridging.md#plot_bridge_scatter), [`plot_bridge_pca`](bridging.md#plot_bridge_pca) |
 | [Sample metadata](samples.md) | | [`add_sample_info`](samples.md#add_sample_info) | |
 | [Analysis table](analysis-table.md) | | [`to_wide`](analysis-table.md#to_wide) | |
-| [Statistics](stats.md) | | [`compare_groups`](stats.md#compare_groups), [`correlate`](stats.md#correlate) | [`plot_volcano`](stats.md#plot_volcano) |
+| [Statistics](stats.md) | | [`compare_groups`](stats.md#compare_groups), [`correlate`](stats.md#correlate) | [`plot_volcano`](stats.md#plot_volcano), [`plot_volcano_pair`](stats.md#plot_volcano_pair) |
+| [Signature](signature.md) | [`protein_contributions`](signature.md#protein_contributions), [`learning_curve`](signature.md#learning_curve), [`selection_curve`](signature.md#selection_curve) | [`find_signature`](signature.md#find_signature) | [`plot_signature_performance`](signature.md#charts), [`plot_selection_frequency`](signature.md#charts), [`plot_contributions`](signature.md#charts), [`plot_curve`](signature.md#charts) |
 | [Example data](prepare.md#example_file) | | [`example_file`](prepare.md#example_file), [`example_data`](prepare.md#example_data), [`example_samples`](prepare.md#example_samples) | |
 
 --8<-- "look-act.html"
