@@ -56,4 +56,7 @@ The data has problems on purpose, so the checks have something to find:
 The lessons find each of these. The analysis table to download already has P20 (FAIL), P07 and
 P33's Plate 2 measurement removed, the decisions made in [Quality control](quality-control.md).
 
+The example data is free to use for any purpose, in teaching, courses or other software
+(CC0 public domain dedication): no permission or citation needed.
+
 <div class="sg-lessonnav"><a href="../">&larr; Learn</a><a href="../data-import/">Data import &rarr;</a></div>

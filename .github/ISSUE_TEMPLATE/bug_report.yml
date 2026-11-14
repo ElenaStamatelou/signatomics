@@ -1,0 +1,23 @@
+name: Something does not work
+description: An error, a wrong result, or a file that does not read
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: What you ran, what you expected, and what you got (the error message helps most).
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Code
+      description: The few lines that show it. Please do not paste real participant data or sample IDs.
+      render: python
+  - type: input
+    attributes:
+      label: Versions
+      description: "Output of: python -c \"import signatomics, sys; print(signatomics.__version__, sys.version)\""
+  - type: input
+    attributes:
+      label: Olink product and file type
+      description: e.g. Target 96, .csv from NPX Signature; Explore HT, .parquet

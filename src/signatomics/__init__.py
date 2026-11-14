@@ -7,4 +7,4 @@ From raw omics files to a biomarker signature for a chosen outcome:
 3. find a small, honest biomarker signature (the core)
 """
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"

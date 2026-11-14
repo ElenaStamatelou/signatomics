@@ -5,7 +5,7 @@ import signatomics.olink
 
 
 def test_package_has_a_version():
-    assert signatomics.__version__ == "0.0.1"
+    assert signatomics.__version__ == "0.1.0"
 
 
 def test_olink_public_functions_one_per_step():

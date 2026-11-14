@@ -18,11 +18,14 @@ and repeatable. If you work in R, Olink's own R package covers much of the clean
 
 ## Status
 
-Version 0.0.1, in development. Preprocessing (data import, quality control, bridging, sample
-metadata) and the first statistics (the analysis table, compare groups, correlate) work, with
-104 automatic tests; `prepare` does the preprocessing in one call, and built-in synthetic data
-lets you try everything. It installs from GitHub until the first release on the Python package
-index; see [Start](start.md). Function names may still change before the first release.
+Version 0.1.0, the first release. Preprocessing (data import, quality control, bridging, sample
+metadata, the analysis table), statistics (compare groups, correlate, adjusting for covariates)
+and the biomarker signature (find it, then check it) work, with 123 automatic tests. `prepare`
+does the preprocessing in one call, and built-in synthetic data lets you try everything.
+Version 0.x means function names may still change; every change is listed with each release.
+
+Found a bug, or something unclear? [Open an issue on GitHub](https://github.com/ElenaStamatelou/signatomics/issues):
+feedback is very welcome.
 
 ## Roadmap
 
@@ -50,12 +53,15 @@ index; see [Start](start.md). Function names may still change before the first r
 
 ## Cite
 
-A DOI will come with the first release. Until then, cite the
-[GitHub repository](https://github.com/ElenaStamatelou/signatomics). If you use the public PAD000040 data,
+Cite the software with its DOI from Zenodo (it will appear here once version 0.1.0 is archived), or
+use "Cite this repository" on [GitHub](https://github.com/ElenaStamatelou/signatomics), which gives the
+reference in APA and BibTeX. If you use the public PAD000040 data,
 also cite the dataset and its paper (see [the PAD000040 example](examples/pad000040.md#1-get-the-data)).
 
 ## Licence and trademarks
 
-An open-source licence (MIT) is planned for the first release. signatomics is an independent
+signatomics is free and open source under the [MIT licence](https://github.com/ElenaStamatelou/signatomics/blob/main/LICENSE):
+you may use, change and share it, also commercially, as long as the copyright notice stays with
+it. The synthetic example data is free to use for any purpose (CC0). signatomics is an independent
 project, not affiliated with or endorsed by Olink or Thermo Fisher Scientific. Olink is a
 trademark of Thermo Fisher Scientific.

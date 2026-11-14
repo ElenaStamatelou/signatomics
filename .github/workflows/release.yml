@@ -1,0 +1,38 @@
+# Publishes signatomics on the Python package index (PyPI) when a release is published on GitHub.
+# One-time setup on pypi.org: Account → Publishing → add a "trusted publisher":
+#   owner ElenaStamatelou, repository signatomics, workflow release.yml, environment pypi.
+# No password or token is stored anywhere: GitHub proves who it is to PyPI.
+name: release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install build pytest
+      - run: python -m build                       # makes the files that go to PyPI (in dist/)
+      - run: pip install "dist/$(ls dist | grep whl)[olink]" && pytest -q   # the built package passes the tests
+      - uses: actions/upload-artifact@v5
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

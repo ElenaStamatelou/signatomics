@@ -2,21 +2,24 @@
 # Python's installer (pip) and the Python package index read this file.
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "signatomics"
-version = "0.0.1"
-description = "Python tools for Olink (PEA) proteomics data: read, check, bridge and analyse, with every step reported. First module of the signatomics family."
+version = "0.1.0"
+description = "Python tools for Olink (PEA) proteomics data: read, quality control, bridging, statistics and biomarker signatures, with every step reported."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 authors = [{ name = "Elena Stamatelou" }]
 # Search words on the Python package index; the name is the family, these say what it does today
 keywords = ["olink", "proteomics", "npx", "pea", "proximity extension assay", "olink target 96",
-            "olink explore", "biomarkers", "quality control", "bridging", "batch correction"]
+            "olink explore", "biomarkers", "quality control", "bridging", "batch correction",
+            "biomarker signature", "machine learning", "differential abundance"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Programming Language :: Python :: 3",
@@ -25,7 +28,9 @@ classifiers = [
 dependencies = [
     "numpy",
     "pandas",
-    "scipy",      # statistics (signatomics.stats)
+    "scipy",          # statistics (signatomics.stats)
+    "scikit-learn",   # biomarker signature (signatomics.signature)
+    "plotly",         # every chart
 ]
 
 [project.urls]
@@ -35,7 +40,7 @@ Issues = "https://github.com/ElenaStamatelou/signatomics/issues"
 
 [project.optional-dependencies]
 # Extensions: installed only when needed, e.g.  pip install signatomics[olink]
-olink = ["pyarrow", "openpyxl", "plotly"]   # parquet (Explore HT / Reveal), Excel sample lists, charts
+olink = ["pyarrow", "openpyxl"]   # parquet (Explore HT / Reveal) and Excel files
 dev = ["pytest"]                  # for running the automatic tests
 
 [tool.setuptools.packages.find]

@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use signatomics, please cite it as below."
+type: software
+title: "signatomics: Python tools for Olink (PEA) proteomics data"
+abstract: >-
+  Python tools for Olink (PEA) proteomics data: read NPX files, quality control,
+  plate bridging, sample metadata, statistics (group comparisons, correlations,
+  adjusted models) and biomarker signatures with nested cross-validation,
+  with every step reported.
+authors:
+  - given-names: Elena
+    family-names: Stamatelou
+version: 0.1.0
+date-released: 2026-11-15
+license: MIT
+repository-code: "https://github.com/ElenaStamatelou/signatomics"
+url: "https://signatomics.elenastamatelou.com"
+keywords:
+  - olink
+  - proteomics
+  - biomarkers
+  - python

@@ -9,10 +9,11 @@ build on it later.
 
 📖 **Documentation:** <https://signatomics.elenastamatelou.com>
 
-> **Status:** in development (version 0.0.1). The Olink module reads data, controls its quality,
+> **Status:** first release (version 0.1.0). The Olink module reads data, controls its quality,
 > bridges plates and adds your sample metadata; `signatomics.stats` compares groups and correlates;
 > `signatomics.signature` finds and checks a biomarker signature.
-> Functions may still change before the first release.
+> Function names may still change while the version starts with 0.
+> Bugs, questions and ideas: [open an issue](https://github.com/ElenaStamatelou/signatomics/issues).
 
 ## What it does today
 
@@ -72,6 +73,11 @@ Requires Python 3.10 or newer. See [Start in 5 minutes](https://signatomics.elen
 
 Public datasets stay outside this repository; the only data inside are the small, synthetic example
 files of the package. See [docs/datasets.md](docs/datasets.md).
+
+## Licence
+
+MIT (see [LICENSE](LICENSE)). The synthetic example data in the package and on the website is
+free to use for any purpose (CC0).
 
 ## Author
 

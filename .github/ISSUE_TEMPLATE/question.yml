@@ -1,0 +1,9 @@
+name: Question or idea
+description: Something unclear in the documentation, or a feature you would like
+labels: [question]
+body:
+  - type: textarea
+    attributes:
+      label: Your question or idea
+    validations:
+      required: true
