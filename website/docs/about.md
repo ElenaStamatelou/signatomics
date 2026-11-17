@@ -53,9 +53,13 @@ feedback is very welcome.
 
 ## Cite
 
-Cite the software with its DOI from Zenodo (it will appear here once version 0.1.0 is archived), or
-use "Cite this repository" on [GitHub](https://github.com/ElenaStamatelou/signatomics), which gives the
-reference in APA and BibTeX. If you use the public PAD000040 data,
+Stamatelou, E. *signatomics: Python tools for Olink (PEA) proteomics data.* Zenodo.
+[doi.org/10.5281/zenodo.24287324](https://doi.org/10.5281/zenodo.24287324)
+
+This DOI always leads to the newest version; on Zenodo every version also has its own DOI
+(version 0.1.0: [10.5281/zenodo.24287325](https://doi.org/10.5281/zenodo.24287325)), so a paper can
+name the exact version it used. "Cite this repository" on
+[GitHub](https://github.com/ElenaStamatelou/signatomics) gives the reference in APA and BibTeX. If you use the public PAD000040 data,
 also cite the dataset and its paper (see [the PAD000040 example](examples/pad000040.md#1-get-the-data)).
 
 ## Licence and trademarks

@@ -7,6 +7,10 @@ signatomics is a family of Python tools for finding biomarker signatures in omic
 first module, `signatomics.olink`, works with **Olink (PEA) proteomics** data. More modules will
 build on it later.
 
+[![PyPI](https://img.shields.io/pypi/v/signatomics)](https://pypi.org/project/signatomics/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24287324.svg)](https://doi.org/10.5281/zenodo.24287324)
+[![License: MIT](https://img.shields.io/badge/License-MIT-teal.svg)](LICENSE)
+
 📖 **Documentation:** <https://signatomics.elenastamatelou.com>
 
 > **Status:** first release (version 0.1.0). The Olink module reads data, controls its quality,
@@ -46,7 +50,7 @@ Each step also exists on its own, with every choice visible: `read_npx`,
 ## Install
 
 ```bash
-pip install "signatomics[olink] @ git+https://github.com/ElenaStamatelou/signatomics"
+pip install "signatomics[olink]"
 ```
 
 Requires Python 3.10 or newer. See [Start in 5 minutes](https://signatomics.elenastamatelou.com/start/).
@@ -73,6 +77,12 @@ Requires Python 3.10 or newer. See [Start in 5 minutes](https://signatomics.elen
 
 Public datasets stay outside this repository; the only data inside are the small, synthetic example
 files of the package. See [docs/datasets.md](docs/datasets.md).
+
+## Cite
+
+Stamatelou, E. signatomics: Python tools for Olink (PEA) proteomics data. Zenodo.
+<https://doi.org/10.5281/zenodo.24287324> (all versions; each version also has its own DOI there).
+GitHub's "Cite this repository" gives the reference in APA and BibTeX.
 
 ## Licence
 

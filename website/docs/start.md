@@ -17,12 +17,12 @@ exactly the output shown here.
 ### 1. Install
 
 ```bash
-pip install "signatomics[olink] @ git+https://github.com/ElenaStamatelou/signatomics"
+pip install "signatomics[olink]"
 ```
 
-<p class="small">Needs Python 3.10 or newer. signatomics installs from GitHub until it is on the
-Python package index; <code>[olink]</code> adds what the Olink part needs (reading
-<code>.xlsx</code> and <code>.parquet</code> files, charts).</p>
+<p class="small">Needs Python 3.10 or newer. <code>[olink]</code> adds what reading
+<code>.xlsx</code> and <code>.parquet</code> files needs. Newer version later:
+<code>pip install --upgrade "signatomics[olink]"</code>.</p>
 
 ### 2. Data import
 

@@ -11,7 +11,8 @@ authors:
   - given-names: Elena
     family-names: Stamatelou
 version: 0.1.0
-date-released: 2026-11-15
+date-released: 2026-11-16
+doi: 10.5281/zenodo.24287324
 license: MIT
 repository-code: "https://github.com/ElenaStamatelou/signatomics"
 url: "https://signatomics.elenastamatelou.com"
