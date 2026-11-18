@@ -21,7 +21,6 @@ from signatomics.signature import ...   # machine learning
 
 | Step | Look (your data stays as it is) | Act (returns a new table) | Charts |
 |---|---|---|---|
-| [In one call](prepare.md) | | [`prepare`](prepare.md#prepare) | |
 | [Data import](reading.md) | | [`read_npx`](reading.md#read_npx) | |
 | [Quality control](quality.md) | [`qc_report`](quality.md#qc_report) | [`apply_qc`](quality.md#apply_qc) | [`plot_npx_strip`](quality.md#plot_npx_strip), [`plot_sample_qc`](quality.md#plot_sample_qc), [`plot_below_lod`](quality.md#plot_below_lod), [`plot_group_by_plate`](quality.md#plot_group_by_plate) |
 | [Bridging](bridging.md) | [`bridge_check`](bridging.md#bridge_check) | [`bridge_plates`](bridging.md#bridge_plates) | [`plot_bridge_shift`](bridging.md#plot_bridge_shift), [`plot_bridge_bland_altman`](bridging.md#plot_bridge_bland_altman), [`plot_bridge_scatter`](bridging.md#plot_bridge_scatter), [`plot_bridge_pca`](bridging.md#plot_bridge_pca) |
@@ -29,7 +28,7 @@ from signatomics.signature import ...   # machine learning
 | [Analysis table](analysis-table.md) | | [`to_wide`](analysis-table.md#to_wide) | |
 | [Statistics](stats.md) | | [`compare_groups`](stats.md#compare_groups), [`correlate`](stats.md#correlate) | [`plot_volcano`](stats.md#plot_volcano), [`plot_volcano_pair`](stats.md#plot_volcano_pair) |
 | [Signature](signature.md) | [`protein_contributions`](signature.md#protein_contributions), [`learning_curve`](signature.md#learning_curve), [`selection_curve`](signature.md#selection_curve) | [`find_signature`](signature.md#find_signature) | [`plot_signature_performance`](signature.md#charts), [`plot_selection_frequency`](signature.md#charts), [`plot_contributions`](signature.md#charts), [`plot_curve`](signature.md#charts) |
-| [Example data](prepare.md#example_file) | | [`example_file`](prepare.md#example_file), [`example_data`](prepare.md#example_data), [`example_samples`](prepare.md#example_samples) | |
+| [Example data](example-data.md) | | [`example_file`](example-data.md#example_file), [`example_data`](example-data.md#example_data), [`example_samples`](example-data.md#example_samples) | |
 
 --8<-- "look-act.html"
 
@@ -51,13 +50,13 @@ from signatomics.signature import ...   # machine learning
       with `show_ids=True`.
     - **Every chart looks the same way:** a title saying what is shown, a subtitle saying how to
       read it, the legend above the plot, dots for samples, axis titles with their units, and
-      Olink's words (assay, bridge samples, LOD). On this website every chart is interactive:
+      Olink's words (protein, bridge samples, LOD). On this website every chart is interactive:
       hover for values, drag to zoom, double-click to reset.
 
 ## The standard table
 
 Every function reads and returns the same kind of table, a pandas `DataFrame` with **one row per
-sample and assay** (long format). [`read_npx`](reading.md#read_npx) makes it from
+sample and protein** (long format). [`read_npx`](reading.md#read_npx) makes it from
 any NPX file.
 
 | Column | What it holds | Always there? |

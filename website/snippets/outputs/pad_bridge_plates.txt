@@ -1,0 +1,4 @@
+Bridging report
+  reference:  Inflammation F.I.F 21/03/2024 (kept as it is)
+  Inflammation PRAESIIDIUM Giraudi 04_03_2025: 92 proteins adjusted (median -0.52 NPX, from -2.30 to +0.96), from 29 bridge samples
+  originals:  NPX_unbridged and LOD_unbridged (NPX and LOD shifted together)

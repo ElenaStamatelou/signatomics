@@ -8,8 +8,9 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from ._engine import corrected_ci, run_cv
+from ._engine import corrected_ci, model_key, model_label, run_cv
 from .find import SignatureResult
+from .._report import format_report
 
 
 @dataclass
@@ -22,10 +23,10 @@ class CheckResult:
     metric: str = ""
 
     def __str__(self) -> str:
-        return self.title + "\n  " + "\n  ".join(self.lines)
+        return format_report(self.title, self.lines)
 
-    def _repr_markdown_(self) -> str:
-        return f"**{self.title}**\n\n" + "\n".join(f"- {line}" for line in self.lines)
+    def __repr__(self) -> str:       # notebooks show the same text as print()
+        return str(self)
 
 
 def _inputs(result: SignatureResult) -> dict:
@@ -45,11 +46,15 @@ def _mean_metric(folds, model, metric):
     return float(np.nanmean(vals)), lo, hi
 
 
+def _n_prot(k: int) -> str:
+    return f"{k} protein{'s' if k != 1 else ''}"
+
+
 def _classes(i):
     return i["classes"] if i["task"] == "multiclass" else None
 
 
-def protein_contributions(result: SignatureResult, *, model: str = "linear", verbose: bool = True) -> CheckResult:
+def protein_contributions(result: SignatureResult, *, model: str = "regression", verbose: bool = True) -> CheckResult:
     """What each signature protein adds: the panel without it, and the protein on its own.
 
     The folds are rerun with the signature proteins fixed (the same proteins in every fold). The
@@ -60,6 +65,7 @@ def protein_contributions(result: SignatureResult, *, model: str = "linear", ver
     itself), ``without`` (the rest of the panel) and ``drop`` (full panel minus without).
     """
     i = _inputs(result)
+    model = model_key(model)
     panel = result.signature
     if not panel:
         raise ValueError("The signature is empty, so there is nothing to compare.")
@@ -79,26 +85,26 @@ def protein_contributions(result: SignatureResult, *, model: str = "linear", ver
                      "without": without[0], "drop": full[0] - without[0]})
     table = pd.DataFrame(rows).sort_values("drop", ascending=False).reset_index(drop=True)
     name = "AUC" if metric == "auc" else "Spearman r"
-    lines = [f"{name} of the full panel ({len(panel)} proteins, model '{model}'): {full[0]:.2f}",
-             "the panel is fixed on all people, so these values compare proteins and sit above the honest "
-             "estimate in .performance"]
     top = table.iloc[0]
-    lines.append(f"largest drop when left out: {top['protein']} ({top['drop']:+.3f}); "
-                 f"strongest alone: {table.sort_values('alone', ascending=False).iloc[0]['protein']} "
-                 f"({table['alone'].max():.2f})")
-    out = CheckResult("Protein contributions", lines, table, metric)
+    alone = table.sort_values("alone", ascending=False).iloc[0]
+    lines = [f"full panel: {name} {full[0]:.2f}",
+             f"largest drop: {top['protein']} ({name} {top['drop']:+.3f} when left out)",
+             f"strongest alone: {alone['protein']} ({name} {alone['alone']:.2f})"]
+    out = CheckResult(f"Protein contributions: {_n_prot(len(panel))}, {model_label(model, i['task'])}",
+                      lines, table, metric)
     out.full = full[0]
     if verbose:
         print(out)
     return out
 
 
-def learning_curve(result: SignatureResult, *, fractions=(0.3, 0.5, 0.7, 0.85, 1.0), model: str = "linear",
+def learning_curve(result: SignatureResult, *, fractions=(0.3, 0.5, 0.7, 0.85, 1.0), model: str = "regression",
                    verbose: bool = True) -> CheckResult:
     """Performance as the training part grows. The test people stay the same; only the training
     people in each fold are reduced to a share of their number, and the proteins are chosen again
     on every smaller training set. A curve that still rises at the right edge says more people would help."""
     i = _inputs(result)
+    model = model_key(model)
     metric = _metric(i["task"])
     rows = []
     for fr in fractions:
@@ -111,21 +117,23 @@ def learning_curve(result: SignatureResult, *, fractions=(0.3, 0.5, 0.7, 0.85, 1
     table = pd.DataFrame(rows)
     name = "AUC" if metric == "auc" else "Spearman r"
     first, last = table.iloc[0], table.iloc[-1]
-    lines = [f"{name} with {first['n_train']:.0f} training people: {first['mean']:.2f}; with {last['n_train']:.0f}: {last['mean']:.2f}",
-             f"change over the last step: {table['mean'].iloc[-1] - table['mean'].iloc[-2]:+.3f}"]
+    lines = [f"{name}: {first['mean']:.2f} with {first['n_train']:.0f} training people; "
+             f"{last['mean']:.2f} with {last['n_train']:.0f}",
+             f"last step: {table['mean'].iloc[-1] - table['mean'].iloc[-2]:+.3f}"]
     out = CheckResult("Learning curve", lines, table, metric)
     if verbose:
         print(out)
     return out
 
 
-def selection_curve(result: SignatureResult, *, sizes=(1, 2, 3, 5, 8, 12, 20), model: str = "linear",
+def selection_curve(result: SignatureResult, *, sizes=(1, 2, 3, 5, 8, 12, 20), model: str = "regression",
                     verbose: bool = True) -> CheckResult:
     """Performance when the signature holds the k strongest proteins of each training part.
 
     In every fold the proteins are ranked on the training people (a ridge model) and the top k are
     kept, so the left-out people play no part in the ranking. Shows how many proteins are enough."""
     i = _inputs(result)
+    model = model_key(model)
     metric = _metric(i["task"])
     sizes = [s for s in sizes if s <= i["P"].shape[1]]
     rows = []
@@ -137,10 +145,10 @@ def selection_curve(result: SignatureResult, *, sizes=(1, 2, 3, 5, 8, 12, 20), m
     table = pd.DataFrame(rows)
     name = "AUC" if metric == "auc" else "Spearman r"
     best = table.loc[table["mean"].idxmax()]
-    lines = [f"{name} for {int(table['proteins'].iloc[0])} protein(s): {table['mean'].iloc[0]:.2f}; "
-             f"for {int(table['proteins'].iloc[-1])}: {table['mean'].iloc[-1]:.2f}",
-             f"highest: {best['mean']:.2f} with {int(best['proteins'])} proteins "
-             f"(the intervals overlap; read the shape of the curve)"]
+    first_k, last_k = int(table["proteins"].iloc[0]), int(table["proteins"].iloc[-1])
+    lines = [f"{name}: {table['mean'].iloc[0]:.2f} with {_n_prot(first_k)}; "
+             f"{table['mean'].iloc[-1]:.2f} with {last_k}",
+             f"highest: {name} {best['mean']:.2f} with {_n_prot(int(best['proteins']))}"]
     out = CheckResult("Selection curve", lines, table, metric)
     if verbose:
         print(out)

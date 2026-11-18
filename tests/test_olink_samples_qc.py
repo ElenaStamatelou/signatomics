@@ -91,10 +91,11 @@ def test_qc_report_finds_everything(npx, sample_list):
     df = add_sample_info(npx, sample_list, on="FIF ID", verbose=False)
     rep = qc_report(df, group="group", verbose=False)
     text = str(rep)
-    assert "QC status: 9 PASS, 2 WARN, 0 FAIL" in text
+    assert "QC status: 9 PASS, 2 WARN, 0 FAIL" in rep.lines
+    assert "  WARN   A3, A4" in rep.lines
     assert "empty measurements (no NPX value at all): A4" in text
     assert "(duplicate sample IDs): A3" in text
-    assert "bridge samples (on more than one plate): 1" in text
+    assert "bridge samples: 1 (on more than one plate)" in rep.lines
     assert "1 of 3" in text                                          # LOW mostly below LOD
     assert "'pre' is missing from plate1" in text                      # group mixed up with plate
 
@@ -131,7 +132,7 @@ def test_apply_qc_removes_fail_and_keeps_warn_by_default():
 def test_apply_qc_protein_threshold_only_when_asked(npx):
     df = apply_qc(npx, max_below_lod=0.5, verbose=False)
     assert "LOW" not in set(df["Assay"])
-    assert any("removed 1 assays" in line for line in df.attrs["qc_applied"])
+    assert any("removed 1 protein below" in line for line in df.attrs["qc_applied"])
 
 
 def test_detectability_difference_between_groups_is_reported():
@@ -149,7 +150,7 @@ def test_detectability_difference_between_groups_is_reported():
     assert table.loc["X", "healthy"] == 1.0 and table.loc["X", "disease"] == 0.0
     assert table.loc["X", "difference"] == 1.0 and table.loc["Y", "difference"] == 0.0
     text = str(rep)
-    assert "detectable in one" in text and "X" in text
+    assert "LOD by group: X (share below the LOD differs by 30 points or more between 'group' groups)" in rep.lines
 
 
 def test_apply_qc_choices_are_respected(npx):
@@ -211,7 +212,7 @@ def test_controls_without_id_and_repeats_by_well(tmp_path):
     assert any("control samples: 2" in line for line in df.attrs["read_report"])
     rep = qc_report(df, verbose=False)
     text_rep = str(rep)
-    assert "2 control samples (2 SAMPLE_CONTROL)" in text_rep
+    assert "(2 control samples left out)" in text_rep
     assert "3 measurements of 2 samples" in text_rep                    # controls left out
     assert "(duplicate sample IDs): S1" in text_rep                                    # recognised by WellID
     clean = apply_qc(df, drop_warnings=False, verbose=False)
@@ -230,3 +231,14 @@ def test_samples_without_group_are_not_a_group(npx, sample_list):
     rep = qc_report(df, group="group", verbose=False)
     assert "nan" not in str(rep)
     assert rep.group_by_plate.index.notna().all()
+
+
+def test_add_sample_info_counts_controls_apart():
+    import signatomics.olink as so
+    data = so.read_npx(so.example_file(), verbose=False)
+    out = so.add_sample_info(data, so.example_samples(1), on="sample_id", verbose=False)
+    report = out.attrs["sample_report"]
+    assert "matched: 40 of 40 sample IDs in the NPX data" in report
+    assert "control samples: 8, without sample metadata" in report
+    assert not any(line.startswith("WARNING") for line in report)
+    assert len(out) == len(data)

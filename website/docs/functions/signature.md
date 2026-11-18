@@ -24,7 +24,7 @@ Find a protein signature for an outcome and estimate how well it predicts.
 
 ```python
 find_signature(table, outcome, *, positive=None, task="auto", proteins=None, covariates=None,
-               models=("linear", "forest"), n_splits=5, n_repeats=5, min_frequency=0.5,
+               models=("regression", "random_forest"), n_splits=5, n_repeats=5, min_frequency=0.5,
                seed=0, verbose=True) -> SignatureResult
 ```
 
@@ -34,16 +34,16 @@ find_signature(table, outcome, *, positive=None, task="auto", proteins=None, cov
 | `outcome` | str | — | the column to predict: two classes (binary), three or more (multiclass) or a number (continuous). People without a value are left out and counted |
 | `positive` | | required for binary | the class to predict, e.g. `"case"`; predictions are the probability of this class |
 | `task` | str | `"auto"` | `"binary"`, `"multiclass"` or `"continuous"`; `"auto"` decides from the column (a number with more than 5 values is continuous) |
-| `proteins` | list | `None` | the assay columns; default from `to_wide` |
+| `proteins` | list | `None` | the protein columns; default from `to_wide` |
 | `covariates` | list | `None` | columns that go into every model next to the proteins, e.g. `["age", "sex"]`, and are never chosen or dropped. The report then also gives the model on the covariates alone |
-| `models` | tuple | `("linear", "forest")` | `"linear"`: logistic regression (ridge for a number); `"forest"`: random forest. Both are reported; none is picked as the best |
+| `models` | tuple | `("regression", "random_forest")` | `"regression"`: logistic regression (ridge regression for a number); `"random_forest"`: random forest. Both are reported; none is picked as the best. The names before 0.2.0, `"linear"` and `"forest"`, still work |
 | `n_splits`, `n_repeats` | int | `5`, `5` | outer folds and repeats: 5 × 5 = 25 folds |
 | `min_frequency` | float | `0.5` | a protein belongs to the signature when at least this share of the folds chose it |
 | `seed` | int | `0` | makes the folds the same every time |
 | `verbose` | bool | `True` | print the report |
 
 **How it works.** The people are split into 5 parts; each part in turn is left out and the rest
-is the training part. Inside each training part an L1 model chooses the proteins (its penalty set
+is the training part. Inside each training part the lasso (an L1 penalty) chooses the proteins (its penalty set
 by an inner cross-validation, with the one-standard-error rule), then the models are fitted on
 those proteins and predict the people left out. This is repeated 5 times with new splits. The
 left-out people play no part in choosing the proteins, so the performance is an honest estimate.
@@ -58,7 +58,7 @@ Its 95% interval allows for the folds sharing people (Nadeau and Bengio's correc
 | `.signature` | the proteins chosen in at least `min_frequency` of the folds |
 | `.folds` | the metric of every fold |
 | `.predictions` | every person's prediction from the folds where the person was left out |
-| `.predict(table, model="linear")` | predictions for new people from the final model, fitted on everyone with the signature proteins |
+| `.predict(table, model="regression")` | predictions for new people from the final model, fitted on everyone with the signature proteins |
 
 Only `.performance` is an honest estimate: the final model behind `.predict` has seen everyone.
 
@@ -70,7 +70,7 @@ binary outcome without `positive`, a class smaller than `n_splits`, or too few p
 What each signature protein adds: the panel without it, and the protein on its own.
 
 ```python
-protein_contributions(result, *, model="linear", verbose=True) -> CheckResult
+protein_contributions(result, *, model="regression", verbose=True) -> CheckResult
 ```
 
 `.table`: one row per protein with `alone` (with its interval), `without` (the rest of the panel)
@@ -83,7 +83,7 @@ numbers compare the proteins with each other; they sit above the honest estimate
 Performance as the training part grows.
 
 ```python
-learning_curve(result, *, fractions=(0.3, 0.5, 0.7, 0.85, 1.0), model="linear",
+learning_curve(result, *, fractions=(0.3, 0.5, 0.7, 0.85, 1.0), model="regression",
                verbose=True) -> CheckResult
 ```
 
@@ -96,7 +96,7 @@ are chosen again. `.table`: `fraction`, `n_train`, `mean`, `ci_low`, `ci_high`,
 Performance with the 1, 2, 3, ... strongest proteins.
 
 ```python
-selection_curve(result, *, sizes=(1, 2, 3, 5, 8, 12, 20), model="linear",
+selection_curve(result, *, sizes=(1, 2, 3, 5, 8, 12, 20), model="regression",
                 verbose=True) -> CheckResult
 ```
 

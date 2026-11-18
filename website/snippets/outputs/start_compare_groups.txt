@@ -1,0 +1,7 @@
+Group comparison: case vs control (Welch's t-test)
+  effect:      difference in mean NPX (log2 fold change), case minus control, 95% interval
+  samples:     19 control, 19 case
+  tested:      92 proteins
+  FDR < 0.05:  2 proteins
+    IL-17C   +1.33 NPX   FDR 8.5e-05
+    OSM      +1.07 NPX   FDR 8.5e-05

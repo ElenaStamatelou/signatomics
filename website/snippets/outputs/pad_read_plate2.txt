@@ -1,0 +1,7 @@
+Data import: inflam_PRA_dt2.raw.csv
+  file type:  .csv
+  layout:     long format (one row per sample and protein)
+  columns renamed to the names signatomics uses: PlateLOD -> LOD
+  NPX:        184 cells said No Data, read as missing values
+  MissingFreq (missing frequency): percentages ("12%") read as fractions (0.12)
+  result:     8096 rows = 88 samples x 92 proteins

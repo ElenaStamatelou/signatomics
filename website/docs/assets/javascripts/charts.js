@@ -29,8 +29,8 @@
   function colours(layout) {
     var d = dark();
     var ink = d ? "#e8e8ec" : "#0b0b0b", ink2 = d ? "#c4c4cc" : "#52514e";
-    var grid = d ? "#2c2f34" : "#e1e0d9", axis = d ? "#4a4d55" : "#c3c2b7";
-    var surface = d ? "#16181b" : "#fcfcfb";
+    var grid = d ? "#2c2f34" : "#e8e7e1", axis = d ? "#4a4d55" : "#c3c2b7";
+    var surface = d ? "#16181b" : "#ffffff";
     var u = { paper_bgcolor: surface, plot_bgcolor: surface, "font.color": ink2,
               "title.font.color": ink, "legend.font.color": ink2 };
     Object.keys(layout).forEach(function (k) {

@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
+from .._report import format_report, table_lines
+
 
 def _proteins(table: pd.DataFrame, proteins, exclude: list[str]) -> list[str]:
     """The protein columns: given, or from ``to_wide`` (``table.attrs["proteins"]``)."""
@@ -80,7 +82,27 @@ class StatsResult:
     not_tested: pd.DataFrame | None = None  # proteins left out, with the reason
 
     def __str__(self) -> str:
-        return self.title + "\n  " + "\n  ".join(self.lines)
+        return format_report(self.title, self.lines)
 
-    def _repr_markdown_(self) -> str:  # nice display in notebooks
-        return f"**{self.title}**\n\n" + "\n".join(f"- {line}" for line in self.lines)
+    def __repr__(self) -> str:       # notebooks show the same text as print()
+        return str(self)
+
+
+def result_lines(out: pd.DataFrame, alpha: float, skipped: list, effect=None) -> list[str]:
+    """The report lines on what was tested and found, the findings as a small table.
+
+    ``effect``: a function giving the effect cell of a result row, e.g. ``+0.92 NPX``.
+    """
+    lines = [f"tested: {_n(len(out), 'protein')}"
+             + (f"; not tested: {len(skipped)}, in .not_tested" if skipped else "")]
+    sig = out[out["fdr"] < alpha]
+    if sig.empty:
+        lines.append(f"FDR < {alpha}: none (lowest FDR {_fmt_p(out['fdr'].min())})")
+        return lines
+    lines.append(f"FDR < {alpha}: {_n(len(sig), 'protein')}")
+    rows = [[str(r["protein"])] + ([effect(r)] if effect else []) + [f"FDR {_fmt_p(r['fdr'])}"]
+            for _, r in sig.head(8).iterrows()]
+    lines += table_lines(rows)
+    if len(sig) > 8:
+        lines.append(f"  ... {len(sig)} in total, in .table")
+    return lines

@@ -11,7 +11,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from .qc import _control_masks
 from .reader import _tidy_sample_ids
+from .._report import format_report
 
 
 def _read_sample_list(samples) -> pd.DataFrame:
@@ -70,8 +72,10 @@ def add_sample_info(npx: pd.DataFrame, samples, *, on: str, npx_on: str = "Sampl
     df = npx.copy()
     df["sample"] = _tidy_sample_ids(df[npx_on])
 
-    protein_ids, list_ids = set(df["sample"]), set(info["sample"])
-    raw_protein = set(df[npx_on].astype(str).str.strip())
+    ctrl = _control_masks(df)[0] if npx_on == "SampleID" else pd.Series(False, index=df.index)
+    controls = set(df.loc[ctrl, "sample"]) - set(info["sample"])
+    protein_ids, list_ids = set(df["sample"]) - controls, set(info["sample"])
+    raw_protein = set(df.loc[~df["sample"].isin(controls), npx_on].astype(str).str.strip())
     raw_list = set(info[on].astype(str).str.strip().str.replace(r"\.0$", "", regex=True))
     matched = protein_ids & list_ids
     exact = raw_protein & raw_list
@@ -80,11 +84,13 @@ def add_sample_info(npx: pd.DataFrame, samples, *, on: str, npx_on: str = "Sampl
     report.append(f"matched: {len(matched)} of {len(protein_ids)} sample IDs in the NPX data"
                   + (f" ({len(matched) - len(exact)} only after tidying the IDs, e.g. \"308 BIS\" = \"308_BIS\")"
                      if len(matched) > len(exact) else ""))
+    if controls:
+        report.append(f"control samples: {len(controls)}, without sample metadata")
     if protein_ids - list_ids:
         report.append(f"WARNING missing from your sample metadata "
                       f"(kept, without sample metadata): {_examples(protein_ids - list_ids)}")
     if list_ids - protein_ids:
-        report.append(f"missing from the NPX data: {_examples(list_ids - protein_ids)}")
+        report.append(f"not in NPX data: {_examples(list_ids - protein_ids)}")
 
     extra = [c for c in info.columns if c not in ("sample",)]
     clashes = [c for c in extra if c in df.columns]
@@ -97,5 +103,5 @@ def add_sample_info(npx: pd.DataFrame, samples, *, on: str, npx_on: str = "Sampl
     out.attrs = dict(npx.attrs)
     out.attrs["sample_report"] = report
     if verbose:
-        print("Matching report\n  " + "\n  ".join(report))
+        print(format_report("Sample metadata added", report))
     return out

@@ -1,0 +1,5 @@
+protein  alone  without  drop
+ IL-17C   0.93     0.96  0.04
+    OSM   0.90     0.98  0.02
+  TWEAK   0.66     0.99  0.01
+    IL6   0.83     0.99  0.01

@@ -1,0 +1,2 @@
+Analysis table
+  result:  38 samples x 92 proteins, plus 4 columns of sample metadata (sample_id, group, age, sex)

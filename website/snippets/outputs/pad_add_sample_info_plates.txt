@@ -1,0 +1,5 @@
+Sample metadata added
+  matched on:  SampleID (NPX data) = FIF ID (your sample metadata)
+  matched:     142 of 143 sample IDs in the NPX data
+  WARNING missing from your sample metadata (kept, without sample metadata): 249
+  columns in both tables (yours renamed with the ending _samplelist): PlateID

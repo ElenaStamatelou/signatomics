@@ -1,0 +1,8 @@
+Quality report
+  checked:         178 measurements of 143 samples, 92 proteins, 2 plates
+  QC status:       161 PASS, 17 WARN, 0 FAIL
+  WARNING empty measurements (no NPX value at all): 2 (IDs hidden)
+  bridge samples:  35 (on more than one plate)
+  below the LOD:   8 of 92 proteins, in more than 75% of the samples
+  outliers:        1 of 178 measurements (more than 3 SD from the others in median or spread)
+  WARNING group mixed up with plate: 'Prediabetes' is missing from Inflammation F.I.F 21/03/2024. A plate difference can then look like a group difference: bridge the plates before comparing groups.

@@ -1,0 +1,17 @@
+Biomarker signature: diabetes = T2DM
+  people:       117 (48 T2DM, 69 No diabetes)
+  proteins:     92
+  method:       nested cross-validation (5 folds x 5 repeats)
+  selection:    lasso, inside each training fold
+  covariates:   sex (in every model, never dropped)
+  performance:  AUC (95% interval)
+    logistic regression                     0.65   0.56 to 0.74
+    random forest                           0.62   0.52 to 0.73
+    logistic regression (covariates only)   0.68   0.61 to 0.74
+    random forest (covariates only)         0.68   0.61 to 0.74
+  signature:    5 proteins, chosen in at least 50% of the folds
+    Flt3L   88%
+    IL8     88%
+    CDCP1   64%
+    TWEAK   60%
+    HGF     52%

@@ -1,0 +1,9 @@
+Bridging check
+  reference:  Inflammation F.I.F 21/03/2024
+  Inflammation PRAESIIDIUM Giraudi 04_03_2025: +0.52 NPX compared with Inflammation F.I.F 21/03/2024 (median over proteins), from 29 bridge samples
+    per protein:  -0.96 to +2.30 NPX; 83 of 92 proteins shifted by more than 0.1
+    noise:        0.44 NPX per protein (typical IQR of the bridge samples' differences)
+    shift differently: 2 (IDs hidden) (bridge samples that shift unlike the others)
+  'diabetes' among the bridge samples: No diabetes: 9 of 69; T2DM: 9 of 48; Prediabetes: 10 of 25
+    overall shift on Inflammation PRAESIIDIUM Giraudi 04_03_2025 per group: No diabetes +0.56; Prediabetes +0.57; T2DM +0.53 (largest difference 0.04 NPX)
+    proteins whose shift differs by more than 0.5 NPX between groups: IL13, IL-22 RA1, TNFB, 4E-BP1, IL-24, IL2

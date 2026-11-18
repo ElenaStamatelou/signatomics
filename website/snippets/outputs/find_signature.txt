@@ -1,0 +1,13 @@
+Biomarker signature: group = case
+  people:       58 (29 case, 29 control)
+  proteins:     92
+  method:       nested cross-validation (5 folds x 5 repeats)
+  selection:    lasso, inside each training fold
+  performance:  AUC (95% interval)
+    logistic regression   0.98   0.96 to 1.00
+    random forest         0.97   0.94 to 1.00
+  signature:    4 proteins, chosen in at least 50% of the folds
+    IL-17C   100%
+    OSM      100%
+    IL6       96%
+    TWEAK     52%

@@ -1,0 +1,6 @@
+  sample_id    group  age     sex
+0       P01  control   73  female
+1       P02     case   60  female
+2       P03  control   63  female
+3       P04     case   71  female
+4       P05  control   58    male

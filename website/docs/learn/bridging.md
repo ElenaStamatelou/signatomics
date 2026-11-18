@@ -1,141 +1,77 @@
 ---
-title: "Bridging Olink plates in Python"
-description: "Put several Olink plates or projects on one scale with bridge samples: bridge_check looks at the plate difference, bridge_plates applies the adjustment factors."
+title: "Bridge Olink plates in Python: bridge_check and bridge_plates"
+description: "Put Olink plates on one scale with bridge samples: bridge_check shows the plate shift per protein, bridge_plates adjusts each protein by the median difference of its bridge samples."
 hide:
   - toc
 ---
 
-<p class="eyebrow">Preprocessing · when your samples are on several plates</p>
+<p class="eyebrow">Preprocessing · step 3 (optional)</p>
 
 # Bridging
 
 <ol class="sg-route" aria-label="Preprocessing route"><li class="done"><span class="dot"></span><a href="../data-import/">Data import</a></li><li class="done"><span class="dot"></span><a href="../quality-control/">Quality control</a></li><li class="done here opt"><span class="dot"></span>Bridging</li><li class="done"><span class="dot"></span><a href="../sample-metadata/">Sample metadata</a></li><li class="done"><span class="dot"></span><a href="../analysis-table/">Analysis table</a></li></ol>
 
-**Use this when** your samples were measured on several plates or in several projects, and
-some samples were measured on both: the **bridge samples**. With one plate, go straight to
+`bridge_plates` puts samples measured on several plates on one scale, using the **bridge samples**:
+the samples measured on more than one plate. With one plate, skip to
 [Sample metadata](sample-metadata.md).
-{ .lede }
 
---8<-- "bridging.html"
+## 1. Run it
 
-The example comes with a second plate. Read both, apply quality control, then bridge:
+The example comes with a second plate. Read both, clean them, check and bridge:
 
 ```python
 import pandas as pd
 
 data = pd.concat([so.read_npx(so.example_file(1)),
                   so.read_npx(so.example_file(2))], ignore_index=True)
-clean = so.apply_qc(data)
-
-so.bridge_check(clean)                  # look: how different are the plates?
-combined = so.bridge_plates(clean)      # act: put them on one scale
-```
-
-<div class="sg-example" markdown>
-<p class="tag">On the synthetic example files: the check</p>
-
-```text
-Bridging check
-  reference: Plate 1
-  Plate 2: reads +0.51 NPX compared with Plate 1 (median over assays; per assay -1.05 to +1.67), measured on 12 bridge samples
-    assays shifted by more than 0.1 NPX: 83 of 92 - bridging needed
-    noise: the bridge samples' differences spread 0.47 NPX per assay (typical IQR); bridging removes the shift; this noise stays
-    bridge samples that shift differently from the others (a mix-up or a degraded tube?): P33
-```
-
-</div>
-
-<figure class="sg-chart" markdown>
-<div class="sg-plot" data-src="../../assets/figures/example_bridge_bland_altman.json"><img src="../../assets/figures/example_bridge_bland_altman.svg" alt="Bland-Altman plots of the bridge samples for three proteins" loading="lazy"></div>
-<figcaption markdown>`so.plot_bridge_bland_altman(clean)`: how much the plates differ, before bridging, for three proteins chosen from the data (the largest shift up, about none, the largest shift down). Each point is one bridge sample: the mean of its two measurements (left to right) and the difference, Plate 2 minus Plate 1 (bottom to top). The solid line is the median difference: the shift that bridging removes, different for each protein. Between the dotted lines lie the usual differences (median ± 1.96 robust SD). The point far below in each panel is P33, the broken tube.</figcaption>
-</figure>
-
-
-Plate 2 reads higher than Plate 1, by a different amount for each assay, so each assay gets its
-own correction.
-
-<div class="sg-example" markdown>
-<p class="tag">On the synthetic example files: the bridging</p>
-
-```text
-Bridging report
-  reference (kept as it is): Plate 1
-  Plate 2: 92 assays adjusted by their adjustment factor (median -0.51 NPX, from -1.67 to +1.05), each from 12 bridge samples
-  NPX and LOD shifted together, so 'below the LOD' stays the same; the original values are in NPX_unbridged and LOD_unbridged
-  check: plot_bridge_pca(before, after) - each bridge sample's two measurements should now lie together
-```
-
-</div>
-
-The **adjustment factor** of an assay is the median of its bridge samples' differences between
-the two plates, as in Olink's bridge normalization. The median keeps one broken tube, like P33,
-from pulling it.
-
-<figure class="sg-chart" markdown>
-<div class="sg-plot" data-src="../../assets/figures/example_bridge_pca.json"><img src="../../assets/figures/example_bridge_pca.svg" alt="PCA of the bridge samples before and after bridging, coloured by plate" loading="lazy"></div>
-<figcaption markdown>`so.plot_bridge_pca(clean, combined)`: check that it worked. Each line joins one bridge sample's two measurements. After bridging they lie close together and the plates overlap. The point far from the rest is P33, the broken tube.</figcaption>
-</figure>
-
-**Your decision on P33.** Only its measurement on Plate 2 is broken; on Plate 1 it reads like the
-others. Remove that one measurement in [quality control](quality-control.md#3-decide-remove-what-quality-control-flagged),
-then bridge again: P33 keeps its Plate 1 value and the bridging uses 11 good bridge samples.
-
-```python
 clean = so.apply_qc(data, drop_samples={"P07": "Plate 1", "P33": "Plate 2"})
+so.bridge_check(clean)
 combined = so.bridge_plates(clean)
 ```
 
+P33 is broken on Plate 2 only, so only that measurement is removed.
 
-??? "Which plate is the reference, and can I choose it?"
+## 2. What you get
 
-    By default the plate with the most samples: its values stay as they are and the other
-    plates move to its scale. To choose another:
+<div class="sg-example" markdown>
+<p class="tag">Output of bridge_check</p>
 
-    ```python
-    combined = so.bridge_plates(clean, reference="Plate 2")
-    ```
+```text
+--8<-- "outputs/bridge_check.txt"
+```
 
-??? "How many bridge samples do I need, and can I use only some?"
+</div>
 
-    Olink recommends 8 to 16 for Target 96, and more for Explore and Reveal. To use only some,
-    for example after removing a broken one:
+<div class="sg-example" markdown>
+<p class="tag">Output of bridge_plates</p>
 
-    ```python
-    combined = so.bridge_plates(clean, bridges=["P29", "P30", "P31"])
-    ```
+```text
+--8<-- "outputs/bridge_plates_drops.txt"
+```
 
-??? "My data comes from two projects. Can I bridge projects?"
+</div>
 
-    Yes: name the column that holds the project.
+<figure class="sg-chart" markdown>
+<div class="sg-plot" data-src="../../assets/figures/example_bridge_pca.json"><img src="../../assets/figures/example_bridge_pca.svg" alt="PCA of the bridge samples before and after bridging, coloured by plate" loading="lazy"></div>
+<figcaption markdown>`so.plot_bridge_pca(clean, combined)`. Each line joins one bridge sample's two measurements. Before bridging they lie apart; after bridging the plates overlap.</figcaption>
+</figure>
 
-    ```python
-    combined = so.bridge_plates(both_projects, batch="Project")
-    ```
+## 3. How to read it
 
-??? "Can I save the adjustment factors and use them again later?"
+- **Plate 2**: reads higher than Plate 1 by 0.51 NPX (median), by a different amount for each
+  protein.
+- **shift differently**: P33 moves unlike the other bridge samples. That is why it was removed
+  on Plate 2.
+- **adjusted**: each protein gets its own adjustment factor, the median of its bridge samples'
+  differences, as in Olink's bridge normalization.
+- **originals**: the values before bridging stay in the columns `NPX_unbridged` and
+  `LOD_unbridged`.
 
-    ```python
-    factors = so.bridge_check(clean).factors
-    factors.to_csv("adjustment_factors.csv", index=False)
-    combined = so.bridge_plates(clean, factors=pd.read_csv("adjustment_factors.csv"))
-    ```
+??? "How it works"
 
-??? "Is the shift the same in every group?"
+    --8<-- "bridging.html"
 
-    ```python
-    so.bridge_check(clean, group="group", samples=so.example_samples(), on="sample_id")
-    ```
+Choose the reference plate or the bridge samples, bridge projects, save the adjustment factors,
+and the other charts: see all options of [`bridge_check` and `bridge_plates`](../functions/bridging.md).
 
-    The report then shows the shift per group. If one group shifts differently, bridging could
-    add or remove a group difference.
-
-??? question "Check yourself: after bridging, bridge_check shows shifts of about 0. Does that prove it worked?"
-
-    The adjustment factors were computed from these same bridge samples, so their shifts are
-    about 0 by construction. The independent check is the PCA, which looks at all assays
-    together.
-
-Every option: [`bridge_check`, `bridge_plates` and the charts](../functions/bridging.md) in Functions.
-
-<div class="sg-lessonnav"><a href="../quality-control/">&larr; Quality control</a><a href="../sample-metadata/">Sample metadata &rarr;</a></div>
-
+<div class="sg-lessonnav"><a href="../quality-control/">&larr; Quality control</a><a href="../sample-metadata/">Sample metadata: add your clinical data &rarr;</a></div>

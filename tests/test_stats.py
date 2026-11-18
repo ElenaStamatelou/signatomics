@@ -5,15 +5,15 @@ import pandas as pd
 import pytest
 from scipy import stats
 
-from signatomics.olink import example_file, example_samples, prepare, to_wide
+from signatomics.olink import add_sample_info, apply_qc, bridge_plates, example_data, example_samples, to_wide
 from signatomics.stats import compare_groups, correlate, fdr_bh, holm
 from signatomics.stats.compare import _jonckheere, _welch_anova, _welch_two
 
 
 @pytest.fixture(scope="module")
 def prepared():
-    return prepare([example_file(1), example_file(2)], example_samples(), on="sample_id",
-                   verbose=False)
+    clean = bridge_plates(apply_qc(example_data(), verbose=False), verbose=False)
+    return add_sample_info(clean, example_samples(), on="sample_id", verbose=False)
 
 
 @pytest.fixture(scope="module")
@@ -290,3 +290,17 @@ def test_volcano_pair(table):
     a = compare_groups(table, "group", reference="control", verbose=False)
     b = compare_groups(table, "group", reference="control", covariates=["age"], verbose=False)
     assert isinstance(plot_volcano_pair(a, b), go.Figure)
+
+
+def test_report_style_short_aligned_lines():
+    from signatomics._report import format_report, table_lines
+    text = format_report("Group comparison: b vs a (Welch's t-test)",
+                         ["samples: 3 a, 3 b", "FDR < 0.05: 1 protein"]
+                         + table_lines([["X", "+1.00 NPX", "FDR 0.01"], ["LONGER", "-0.50 NPX", "FDR 0.04"]]))
+    assert text.splitlines() == [
+        "Group comparison: b vs a (Welch's t-test)",
+        "  samples:     3 a, 3 b",
+        "  FDR < 0.05:  1 protein",
+        "    X        +1.00 NPX   FDR 0.01",
+        "    LONGER   -0.50 NPX   FDR 0.04",
+    ]

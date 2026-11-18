@@ -95,7 +95,6 @@ nav:
   - Functions:
       - functions/index.md
       - Preprocessing:
-          - In one call: functions/prepare.md
           - Data import: functions/reading.md
           - Quality control: functions/quality.md
           - Bridging: functions/bridging.md
@@ -105,6 +104,7 @@ nav:
           - Statistics: functions/stats.md
       - Machine learning:
           - Signature: functions/signature.md
+      - Example data: functions/example-data.md
   - Examples:
       - examples/index.md
       - "Obesity and diabetes (PAD000040)": examples/pad000040.md

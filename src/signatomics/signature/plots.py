@@ -7,10 +7,16 @@ import plotly.graph_objects as go
 from sklearn.metrics import roc_curve
 
 from ..olink.plots import INK_2, MUTED, SERIES, _style
+from ._engine import model_label
 from .checks import CheckResult
 from .find import SignatureResult
 
-_MODEL_COLOR = {"linear": SERIES[0], "forest": SERIES[1]}
+def _rgba(hex_colour: str, alpha: float) -> str:
+    h = hex_colour.lstrip("#")
+    return f"rgba({int(h[0:2], 16)},{int(h[2:4], 16)},{int(h[4:6], 16)},{alpha})"
+
+
+_MODEL_COLOR = {"regression": SERIES[0], "random_forest": SERIES[1]}
 
 
 def plot_signature_performance(result: SignatureResult) -> go.Figure:
@@ -24,24 +30,35 @@ def plot_signature_performance(result: SignatureResult) -> go.Figure:
     fig = go.Figure()
     if result.task == "binary":
         pos = result.classes[-1]
+        grid = np.linspace(0, 1, 101)
         for model, part in pr.groupby("model", sort=False):
             colour = _MODEL_COLOR.get(model, MUTED)
-            for rep, g in part.groupby("repeat"):
+            label = model_label(model, result.task)
+            curves = []
+            for _, g in part.groupby("repeat"):
                 fpr, tpr, _ = roc_curve((g["observed"] == pos).astype(int), g["predicted"])
-                fig.add_scatter(x=fpr, y=tpr, mode="lines", line=dict(color=colour, width=1.2),
-                                opacity=0.55, name=model, legendgroup=model, showlegend=rep == 0,
-                                hoverinfo="skip")
+                curves.append(np.interp(grid, fpr, tpr))
+            curves = np.array(curves)
+            curves[:, 0] = 0.0
+            fig.add_scatter(x=np.r_[grid, grid[::-1]], y=np.r_[curves.max(axis=0), curves.min(axis=0)[::-1]],
+                            fill="toself", fillcolor=_rgba(colour, 0.15), line=dict(width=0),
+                            legendgroup=model, showlegend=False, hoverinfo="skip")
+            fig.add_scatter(x=grid, y=curves.mean(axis=0), mode="lines", line=dict(color=colour, width=2.5),
+                            name=label, legendgroup=model,
+                            hovertemplate=f"{label}<br>1 - specificity %{{x:.2f}}<br>sensitivity %{{y:.2f}}<extra></extra>")
         fig.add_scatter(x=[0, 1], y=[0, 1], mode="lines", line=dict(color=INK_2, width=1, dash="dash"),
                         name="no information", hoverinfo="skip")
         fig.update_xaxes(title="1 - specificity", range=[0, 1])
         fig.update_yaxes(title="sensitivity", range=[0, 1.02])
         auc = result.performance.query("metric == 'auc'")
-        sub = [f"{r['model']} AUC {r['mean']:.2f} ({r['ci_low']:.2f} to {r['ci_high']:.2f})" for _, r in auc.iterrows()
-               if "covariates only" not in r["model"]]
+        sub = [f"{model_label(r['model'], result.task)} AUC {r['mean']:.2f} ({r['ci_low']:.2f} to {r['ci_high']:.2f})"
+               for _, r in auc.iterrows() if "covariates only" not in r["model"]]
+        sub.append("line = mean over the repeats, band = their range")
         title = f"ROC curve for {result.classes[-1]}"
     elif result.task == "continuous":
         for model, part in pr[pr["repeat"] == 0].groupby("model", sort=False):
-            fig.add_scatter(x=part["observed"], y=part["predicted"], mode="markers", name=model,
+            fig.add_scatter(x=part["observed"], y=part["predicted"], mode="markers",
+                            name=model_label(model, result.task),
                             marker=dict(size=7, color=_MODEL_COLOR.get(model, MUTED), opacity=0.7))
         lo, hi = float(pr["observed"].min()), float(pr["observed"].max())
         fig.add_scatter(x=[lo, hi], y=[lo, hi], mode="lines", line=dict(color=INK_2, width=1, dash="dash"),
@@ -49,13 +66,13 @@ def plot_signature_performance(result: SignatureResult) -> go.Figure:
         fig.update_xaxes(title=f"observed {result.outcome}")
         fig.update_yaxes(title=f"predicted {result.outcome}")
         rho = result.performance.query("metric == 'spearman'")
-        sub = [f"{r['model']} Spearman r {r['mean']:.2f}" for _, r in rho.iterrows() if "covariates only" not in r["model"]]
+        sub = [f"{model_label(r['model'], result.task)} Spearman r {r['mean']:.2f}" for _, r in rho.iterrows() if "covariates only" not in r["model"]]
         title = f"Predicted against observed {result.outcome}"
     else:
         raise ValueError("This chart is for a binary or a continuous outcome. For several classes read "
                          "result.performance and result.predictions.")
     fig.update_layout(height=470, width=620, margin=dict(l=70, r=30, b=60))
-    return _style(fig, title, sub + ["people left out of every step that chose proteins"])
+    return _style(fig, title, sub)
 
 
 def plot_selection_frequency(result: SignatureResult, *, top: int = 20) -> go.Figure:
@@ -119,4 +136,4 @@ def plot_contributions(check: CheckResult) -> go.Figure:
     fig.update_xaxes(title=name)
     fig.update_layout(height=max(320, 26 * len(t) + 180), width=620, margin=dict(l=90, r=30, b=60))
     return _style(fig, "What each protein adds",
-                  ["dashed = the full panel", "the panel is fixed on all people: compare proteins with each other"])
+                  ["dashed = the full panel"])

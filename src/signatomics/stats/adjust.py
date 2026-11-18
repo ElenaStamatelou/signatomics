@@ -148,8 +148,8 @@ def adjusted_comparison(data: pd.DataFrame, proteins: list[str], group: str, lev
 def covariate_lines(table: pd.DataFrame, group: str, covariates: list[str], used: int,
                     dropped: int, n_terms: int) -> list[str]:
     """The report lines about the adjustment."""
-    lines = [f"adjusted for: {', '.join(covariates)} (one model for every protein, robust HC3 "
-             f"standard errors; no covariate is chosen or dropped by its p-value)"]
+    lines = [f"model: NPX ~ {group} + {' + '.join(covariates)}, the same for every protein, "
+             f"robust HC3 errors"]
     if dropped:
         lines.append(f"left out: {_n(dropped, 'sample')} with a missing covariate; "
                      f"{used} samples remain")

@@ -1,0 +1,3 @@
+Analysis table
+  averaged:  32 samples measured more than once (bridge samples or repeats): the mean of their NPX values
+  result:    143 samples x 92 proteins, plus 10 columns of sample metadata (FIF ID, PlateID_samplelist, Subject_ID, sex, diabetes, fibrosi, fibrosis_diag, inflammation_diag, ballooning_diag, steatosis_diagnosis)

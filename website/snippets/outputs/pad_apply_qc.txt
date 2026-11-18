@@ -1,0 +1,3 @@
+Quality control applied
+  removed:  2 measurements (no NPX value at all): 2 (IDs hidden)
+  kept:     176 measurements of 143 samples, 92 proteins

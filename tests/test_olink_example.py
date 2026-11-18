@@ -1,0 +1,51 @@
+"""Tests for the made-up example data."""
+
+import pandas as pd
+import pytest
+
+from signatomics.olink import (add_sample_info, apply_qc, example_data, example_file, example_samples,
+                               qc_report, read_npx)
+
+
+def test_example_data_is_the_same_every_time():
+    a, b = example_data(), example_data()
+    pd.testing.assert_frame_equal(a, b)
+    people = a[a["SampleType"] == "SAMPLE"]
+    assert people["SampleID"].nunique() == 60 and a["Assay"].nunique() == 92
+    assert set(a["PlateID"]) == {"Plate 1", "Plate 2"}
+    assert (a[a["SampleType"] != "SAMPLE"].groupby("PlateID")["SampleID"].nunique() == 8).all()
+
+
+def test_example_data_has_what_the_checks_should_find():
+    rep = qc_report(example_data(), verbose=False)
+    m = rep.measurements
+    assert m["warning"].sum() == 2 and m["fail"].sum() == 1
+    assert not m["repeat"].any()
+    assert m.loc[m["bridging"], "SampleID"].nunique() == 12
+    assert sorted(rep.samples.loc[rep.samples["outlier"], "SampleID"]) == ["P07", "P33"]
+    assert (rep.proteins["below_lod"] > 0.75).sum() >= 8
+
+
+def test_example_files_are_the_two_plates():
+    one = read_npx(example_file(), verbose=False)
+    two = read_npx(example_file(2), verbose=False)
+    assert set(one["PlateID"]) == {"Plate 1"} and set(two["PlateID"]) == {"Plate 2"}
+    both = pd.concat([one, two], ignore_index=True)
+    pd.testing.assert_frame_equal(both, example_data(), check_dtype=False, check_like=True)
+    assert one.attrs["read_report"][-1] == "result: 4416 rows = (40 samples + 8 controls) x 92 proteins"
+    with pytest.raises(ValueError):
+        example_file(3)
+
+
+def test_example_samples_match_every_sample():
+    data = add_sample_info(apply_qc(example_data(), verbose=False), example_samples(),
+                           on="sample_id", verbose=False)
+    assert data["group"].notna().all()
+    assert set(data["group"]) == {"case", "control"}
+
+
+def test_group_checks_look_up_the_sample_data_without_adding_it():
+    data = example_data()
+    rep = qc_report(data, group="group", samples=example_samples(), on="sample_id", verbose=False)
+    assert rep.below_lod_by_group is not None and rep.group_by_plate is not None
+    assert "group" not in data.columns

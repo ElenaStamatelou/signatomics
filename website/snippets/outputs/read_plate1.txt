@@ -1,0 +1,5 @@
+Data import: example_plate1.csv
+  file type:        .csv
+  layout:           long format (one row per sample and protein)
+  control samples:  8 (marked in SampleType)
+  result:           4416 rows = (40 samples + 8 controls) x 92 proteins

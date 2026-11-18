@@ -1,12 +1,12 @@
 # Builds the documentation website (website/) and publishes it on GitHub Pages,
-# at https://signatomics.elenastamatelou.com. Runs on every push to main that touches the website.
+# at https://signatomics.elenastamatelou.com. Runs when a release is published on GitHub, together
+# with release.yml (PyPI), so the website always matches the version people can install.
 # One-time setup on GitHub: Settings → Pages → Source: "GitHub Actions".
 name: docs
 
 on:
-  push:
-    branches: [main]
-    paths: ["website/**", ".github/workflows/docs.yml"]
+  release:
+    types: [published]
   workflow_dispatch:          # also a "Run workflow" button on GitHub
 
 permissions:

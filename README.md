@@ -26,7 +26,7 @@ import signatomics.olink as so
 
 data  = so.read_npx(so.example_file())    # a synthetic example NPX file; your own: so.read_npx("my_npx_file.csv")
 so.qc_report(data)                        # look at quality: your data stays as it is
-clean = so.prepare(so.example_file())     # read, quality control, bridging and sample metadata in one call
+clean = so.apply_qc(data)                 # remove the control samples and the samples that failed QC
 ```
 
 Each step also exists on its own, with every choice visible: `read_npx`,
@@ -50,10 +50,10 @@ Each step also exists on its own, with every choice visible: `read_npx`,
 ## Install
 
 ```bash
-pip install "signatomics[olink]"
+pip install signatomics
 ```
 
-Requires Python 3.10 or newer. See [Start in 5 minutes](https://signatomics.elenastamatelou.com/start/).
+Requires Python 3.10 or newer. See [Your first analysis](https://signatomics.elenastamatelou.com/start/).
 
 ## The family
 

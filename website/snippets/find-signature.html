@@ -1,0 +1,33 @@
+<figure class="sg-fig">
+<div class="sg-fig-scroll">
+<svg viewBox="0 0 860 200" role="img" aria-label="find_signature splits the people into 5 parts. In each fold one part is left out; on the other 4 parts the lasso chooses the proteins and the models are fitted, then the left-out people are predicted. This runs for every part and is repeated 5 times: 25 folds. The result is the AUC from left-out people only, and the signature: the proteins chosen in at least half of the folds.">
+  <text class="d-k" x="30" y="22">one fold: the people in 5 parts</text>
+
+  <rect class="d-cell" x="30" y="44" width="58" height="40" rx="4"/>
+  <rect class="d-cell" x="94" y="44" width="58" height="40" rx="4"/>
+  <rect class="d-cell" x="158" y="44" width="58" height="40" rx="4"/>
+  <rect class="d-cell" x="222" y="44" width="58" height="40" rx="4"/>
+  <rect class="d-node" x="286" y="44" width="58" height="40" rx="4"/>
+
+  <path class="d-line" d="M30 96 V104 H280 V96"/>
+  <text class="d-t" x="155" y="124" text-anchor="middle">choose the proteins (lasso)</text>
+  <text class="d-t" x="155" y="141" text-anchor="middle">and fit the models</text>
+  <path class="d-line acc" d="M286 96 V104 H344 V96"/>
+  <text class="d-k" x="315" y="124" text-anchor="middle">predict</text>
+  <text class="d-t" x="315" y="141" text-anchor="middle">left out</text>
+
+  <text class="d-t" x="30" y="182">every part once, 5 repeats: 25 folds</text>
+
+  <path class="d-line" d="M390 80 H498"/>
+  <path class="d-head" d="M498 75 L507 80 L498 85 Z"/>
+  <text class="d-t" x="448" y="68" text-anchor="middle">all folds</text>
+
+  <text class="d-k" x="535" y="22">the result</text>
+  <text class="d-k" x="535" y="62">AUC</text>
+  <text class="d-t" x="535" y="82">how well the models predict, from left-out people only</text>
+  <text class="d-k" x="535" y="122">signature</text>
+  <text class="d-t" x="535" y="142">the proteins chosen in at least half of the folds</text>
+</svg>
+</div>
+<figcaption>In blue: the people left out of a fold. They never help to choose the proteins, so the AUC is an honest estimate for new people.</figcaption>
+</figure>

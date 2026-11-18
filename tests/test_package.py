@@ -17,7 +17,7 @@ def test_olink_public_functions_one_per_step():
         "bridge_check", "bridge_plates",
         "plot_bridge_shift", "plot_bridge_bland_altman", "plot_bridge_scatter", "plot_bridge_pca",
         "to_wide",
-        "prepare", "example_file", "example_data", "example_samples",
+        "example_file", "example_data", "example_samples",
         "QCReport", "BridgeCheck",
     }
     for name in signatomics.olink.__all__:

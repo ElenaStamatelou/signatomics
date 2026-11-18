@@ -1,0 +1,7 @@
+Quality report
+  checked:        40 samples, 92 proteins, 1 plate (8 control samples left out)
+  QC status:      38 PASS, 1 WARN, 1 FAIL
+    WARN   P05
+    FAIL   P20
+  below the LOD:  11 of 92 proteins, in more than 75% of the samples
+  outliers:       1 of 40 samples: P07 (more than 3 SD from the others in median or spread)

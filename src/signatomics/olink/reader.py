@@ -7,7 +7,7 @@ therefore always gives the same table, and every change it makes is written to a
 Two layouts are recognised automatically:
 
 - **long** (current exports): one row per sample and protein;
-- **wide** (older exports, e.g. NPX Manager): a header block (Panel / Assay / Uniprot ID /
+- **wide** (older exports, e.g. NPX Manager): a header block (Panel / Protein / Uniprot ID /
   OlinkID), one row per sample with all proteins side by side, plate and QC-warning columns per
   panel, and a bottom block (LOD, Missing Data freq., Normalization, Plate LOD, ...).
   It is converted to the long layout, so everything after reading works the same.
@@ -19,6 +19,7 @@ import csv
 from pathlib import Path
 
 import pandas as pd
+from .._report import format_report
 
 # ---------------------------------------------------------------------------------------------
 # Vocabulary
@@ -290,7 +291,7 @@ def _wide_to_long(grid: pd.DataFrame, report: list[str]) -> pd.DataFrame:
     panels = sorted(long["Panel"].dropna().unique())
     report.append(
         f"layout: wide format (older Olink export, one row per sample), turned into long format: "
-        f"{len(samples)} samples x {len(assay_cols)} assays; values: {data_type}"
+        f"{len(samples)} samples x {len(assay_cols)} proteins; values: {data_type}"
         + (f"; panels: {', '.join(panels)}" if panels else "")
     )
     if n_controls:
@@ -506,7 +507,7 @@ def read_npx(path, *, sep: str | None = None, column_map: dict | None = None,
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
-    report: list[str] = [f"file: {path.name}"]
+    report: list[str] = []
 
     if path.suffix.lower() == ".parquet":
         report.append("file type: .parquet")
@@ -516,7 +517,7 @@ def read_npx(path, *, sep: str | None = None, column_map: dict | None = None,
         if _is_wide(grid):
             df = _wide_to_long(grid, report)
         else:
-            report.append("layout: long format (one row per sample and assay)")
+            report.append("layout: long format (one row per sample and protein)")
             df = _grid_to_long_table(grid)
 
     df = _standardise_columns(df, column_map, report)
@@ -542,11 +543,11 @@ def read_npx(path, *, sep: str | None = None, column_map: dict | None = None,
         keys = [c for c in ("SampleID", "Index", "WellID", "Panel", "PlateID") if c in df.columns]
         n_ctrl = df[is_ctrl].groupby(keys, dropna=False).ngroups
         if n_ctrl:
-            report.append(f"control samples: {n_ctrl} (marked in SampleType); apply_qc removes them")
+            report.append(f"control samples: {n_ctrl} (marked in SampleType)")
     if "AssayType" in df.columns:
         n_ctrl = df.loc[df["AssayType"].astype("string").str.lower() != "assay", "OlinkID"].nunique()
         if n_ctrl:
-            report.append(f"internal control assays: {n_ctrl} (marked in AssayType); apply_qc removes them")
+            report.append(f"internal control assays: {n_ctrl} (marked in AssayType)")
 
     prot = "Assay" if "Assay" in df.columns else "OlinkID"
     typical, total = df.groupby("SampleID")[prot].nunique().median(), df[prot].nunique()
@@ -554,7 +555,7 @@ def read_npx(path, *, sep: str | None = None, column_map: dict | None = None,
         other = {c: df[c].nunique() for c in df.columns
                  if "sample" in str(c).lower() and c not in ("SampleID", "SampleType")}
         report.append(
-            f"WARNING a typical sample ID has only {typical:g} of the {total} assays: SampleID may hold "
+            f"WARNING a typical sample ID has only {typical:g} of the {total} proteins: SampleID may hold "
             f"something else" + (". Columns that may hold the sample IDs: "
                                  + ", ".join(f"{c} ({n} values)" for c, n in other.items())
                                  + f"; for example read_npx(..., column_map={{'{next(iter(other))}': 'SampleID'}})"
@@ -566,12 +567,12 @@ def read_npx(path, *, sep: str | None = None, column_map: dict | None = None,
     plates = f", on {n_plates} plates" if n_plates and n_plates > 1 else ""
     def n(k, word):
         return f"{k} {word}" + ("" if k == 1 else "s")
-    shape = (f"{n(n_runs, 'sample')} x {n(n_assays, 'assay')}" if n_runs == n_ids
-             else f"{n(n_runs, 'measurement')} x {n(n_assays, 'assay')} ({n_ids} samples, some measured twice)")
+    shape = (f"{n(n_runs, 'sample')} x {n(n_assays, 'protein')}" if n_runs == n_ids
+             else f"{n(n_runs, 'measurement')} x {n(n_assays, 'protein')} ({n_ids} samples, some measured twice)")
     if "SampleType" in df.columns and n_runs == n_ids:
         n_ctrl = runs.loc[_is_control_type(runs["SampleType"]), "SampleID"].nunique()
         if n_ctrl:
-            shape = f"({n(n_ids - n_ctrl, 'sample')} + {n(n_ctrl, 'control')}) x {n(n_assays, 'assay')}"
+            shape = f"({n(n_ids - n_ctrl, 'sample')} + {n(n_ctrl, 'control')}) x {n(n_assays, 'protein')}"
     report.append(f"result: {n(len(df), 'row')} = {shape}{plates}"
                   if len(df) == n_runs * n_assays
                   else f"result: {n(len(df), 'row')}: {shape}{plates}")
@@ -579,5 +580,5 @@ def read_npx(path, *, sep: str | None = None, column_map: dict | None = None,
     df = df.reset_index(drop=True)
     df.attrs["read_report"] = report
     if verbose:
-        print("Reading report\n  " + "\n  ".join(report))
+        print(format_report(f"Data import: {path.name}", report))
     return df

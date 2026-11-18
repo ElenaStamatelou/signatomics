@@ -1,0 +1,3 @@
+Quality control applied
+  removed:  8 control samples: 3 NEGATIVE_CONTROL, 3 PLATE_CONTROL, 2 SAMPLE_CONTROL
+  kept:     40 samples, 92 proteins

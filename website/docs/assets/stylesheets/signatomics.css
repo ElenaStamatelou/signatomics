@@ -200,7 +200,7 @@ body { background: var(--sg-paper); }
 .sg-fig svg { display: block; width: 100%; height: auto; min-width: 560px; }
 .sg-fig .d-t { font-family: var(--md-text-font-family); font-size: 13px; fill: var(--sg-muted); }
 .sg-fig .d-k { font-family: var(--md-text-font-family); font-size: 13px; font-weight: 600; fill: var(--sg-ink); }
-.sg-fig .d-m { font-family: var(--md-code-font-family); font-size: 12.5px; fill: var(--sg-ink); }
+.sg-fig .d-m { font-family: var(--md-text-font-family); font-size: 13px; font-variant-numeric: tabular-nums; fill: var(--sg-ink); }
 .sg-fig .d-m.d-acc { fill: var(--sg-accent); font-weight: 600; }
 .sg-fig .d-line { stroke: var(--sg-edge); stroke-width: 1.4; fill: none; }
 .sg-fig .d-line.acc { stroke: var(--sg-accent); opacity: 0.55; }
@@ -214,10 +214,21 @@ body { background: var(--sg-paper); }
 .sg-fig .d-lod { stroke: var(--sg-ink); stroke-width: 2; }
 
 /* ---------- charts: interactive when the library loads, a picture otherwise ---------- */
-.sg-plot { border: 1px solid var(--sg-rule); border-radius: 10px; overflow: hidden; background: #fcfcfb; }
+.sg-plot { border: 1px solid var(--sg-rule); border-radius: 10px; overflow: hidden; background: #ffffff; }
 [data-md-color-scheme="slate"] .sg-plot[data-state="live"] { background: #16181b; }
 .sg-plot img { display: block; width: 100%; height: auto; }
 .sg-plot-live { width: 100%; }
 
 /* "optional" next to a heading (Start: bridging) */
 .md-typeset .sg-opt { font-size: 0.62em; font-weight: 400; color: var(--sg-muted); margin-left: 0.5em; letter-spacing: 0; }
+
+
+/* Structure plan 17 Nov 2026 (site_audit/2026-11-17/PLAN.md) ------------------------------- */
+/* report lines (output boxes) wrap instead of running off the box; code keeps its layout */
+.md-typeset .sg-example pre > code { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* reference tables: code in a cell may wrap, so the meaning column gets the room */
+.md-typeset table:not([class]) td code { white-space: normal; word-break: normal; overflow-wrap: normal; }
+.md-typeset table:not([class]) td:first-child code { white-space: nowrap; }
+.md-typeset table:not([class]) td:last-child { width: 45%; }
+/* lessons: the "How it works" box */
+.md-typeset details.sg-how { margin-top: 1.6em; }

@@ -31,6 +31,8 @@ dependencies = [
     "scipy",          # statistics (signatomics.stats)
     "scikit-learn",   # biomarker signature (signatomics.signature)
     "plotly",         # every chart
+    "openpyxl",       # Excel files (.xlsx)
+    "pyarrow",        # parquet files (Explore HT / Reveal)
 ]
 
 [project.urls]
@@ -39,8 +41,8 @@ Source = "https://github.com/ElenaStamatelou/signatomics"
 Issues = "https://github.com/ElenaStamatelou/signatomics/issues"
 
 [project.optional-dependencies]
-# Extensions: installed only when needed, e.g.  pip install signatomics[olink]
-olink = ["pyarrow", "openpyxl"]   # parquet (Explore HT / Reveal) and Excel files
+# olink: kept so that the older install line  pip install "signatomics[olink]"  still works
+olink = []
 dev = ["pytest"]                  # for running the automatic tests
 
 [tool.setuptools.packages.find]

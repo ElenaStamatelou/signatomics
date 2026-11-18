@@ -1,0 +1,4 @@
+Protein contributions: 4 proteins, logistic regression
+  full panel:       AUC 1.00
+  largest drop:     IL-17C (AUC +0.041 when left out)
+  strongest alone:  IL-17C (AUC 0.93)

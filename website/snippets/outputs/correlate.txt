@@ -1,0 +1,5 @@
+Correlation with age (Spearman)
+  effect:      correlation r, 95% interval
+  samples:     58 with a value
+  tested:      92 proteins
+  FDR < 0.05:  none (lowest FDR 0.5)

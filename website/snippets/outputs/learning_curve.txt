@@ -1,0 +1,3 @@
+Learning curve
+  AUC:        0.76 with 14 training people; 0.98 with 46
+  last step:  +0.007

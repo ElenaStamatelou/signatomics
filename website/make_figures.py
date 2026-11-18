@@ -83,7 +83,17 @@ def _picture(fig, path, tries=3, limit=120):
     FAILED.append(path.name)
 
 
-def save(name, fig, static=True):
+def for_website(fig):
+    """The website shows charts under a page heading and a caption: no title or subtitle inside the
+    chart (Elena, 17 Nov 2026); the legend moves up to the top edge."""
+    fig.update_layout(title=None, legend=dict(yref="container", y=0.99, yanchor="top"),
+                      margin=dict(t=56))
+    return fig
+
+
+def save(name, fig, static=True, web=True):
+    if web:
+        fig = for_website(fig)
     if static:
         _picture(fig, OUT / f"{name}.svg")
     spec = _round(json.loads(fig.to_json()), digits=2)
@@ -103,6 +113,11 @@ def main():
     both_clean = so.apply_qc(both, verbose=False)
     save("example_sample_qc", so.plot_sample_qc(plate1))
     save("example_npx_strip", so.plot_npx_strip(plate1))
+    # Start: one plate, P07 removed, to a first volcano plot
+    s1 = so.example_samples(1)
+    start_table = so.to_wide(so.add_sample_info(so.apply_qc(plate1, drop_samples=["P07"], verbose=False), s1,
+                                                on="sample_id", verbose=False), verbose=False)
+    save("start_volcano", plot_volcano(compare_groups(start_table, "group", reference="control", verbose=False)))
     save("example_npx_strip_groups", so.plot_npx_strip(plate1, group="group", samples=so.example_samples(),
                                                        on="sample_id"))
     save("example_bridge_bland_altman", so.plot_bridge_bland_altman(both_clean))
@@ -111,11 +126,8 @@ def main():
 
     # statistical analysis on the analysis table: the lessons remove P07 and P33 (Plate 2 only)
     # in quality control; the "outliers" chart shows what happens when they stay
-    files = [so.example_file(1), so.example_file(2)]
-    table = so.to_wide(so.prepare(files, so.example_samples(), on="sample_id", verbose=False),
-                       verbose=False)
-    clean_table = so.to_wide(so.prepare(files, so.example_samples(), on="sample_id",
-                                        drop_samples=EXAMPLE_DROPS, verbose=False), verbose=False)
+    table = example_table()
+    clean_table = example_table(EXAMPLE_DROPS)
     save("example_volcano_outliers", plot_volcano(compare_groups(table, "group", reference="control",
                                                                  verbose=False)))
     unadjusted = compare_groups(clean_table, "group", reference="control", verbose=False)
@@ -187,6 +199,14 @@ def signature_figures(table, outcome, positive, *, prefix, covariates=None, chec
         save(f"{prefix}selection_curve", plot_curve(selection_curve(result, verbose=False)))
 
 
+def example_table(drop_samples=None):
+    """The analysis table of the synthetic example, made step by step as in the lessons."""
+    clean = so.apply_qc(so.example_data(), drop_samples=drop_samples, verbose=False)
+    data = so.add_sample_info(so.bridge_plates(clean, verbose=False), so.example_samples(),
+                              on="sample_id", verbose=False)
+    return so.to_wide(data, verbose=False)
+
+
 def write_downloads():
     """The synthetic example data as files to download from the website (Learn > Example data)."""
     DOWNLOADS.mkdir(parents=True, exist_ok=True)
@@ -194,9 +214,7 @@ def write_downloads():
         shutil.copyfile(so.example_file(plate), DOWNLOADS / f"signatomics_example_plate{plate}.csv")
     so.example_samples().to_excel(DOWNLOADS / "signatomics_example_samples.xlsx", index=False,
                                   sheet_name="sample metadata")
-    table = so.to_wide(so.prepare([so.example_file(1), so.example_file(2)], so.example_samples(),
-                                  on="sample_id", drop_samples=EXAMPLE_DROPS, verbose=False),
-                       verbose=False)
+    table = example_table(EXAMPLE_DROPS)
     table.round(4).to_excel(DOWNLOADS / "signatomics_example_analysis_table.xlsx", index=False,
                             sheet_name="analysis table")
     print("downloads:", ", ".join(sorted(f.name for f in DOWNLOADS.iterdir())))

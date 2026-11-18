@@ -1,0 +1,4 @@
+Sample metadata added
+  matched on:       SampleID (NPX data) = sample_id (your sample metadata)
+  matched:          38 of 38 sample IDs in the NPX data
+  not in NPX data:  P07, P20

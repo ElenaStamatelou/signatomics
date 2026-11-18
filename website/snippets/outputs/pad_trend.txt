@@ -1,0 +1,9 @@
+Group comparison: trend over No diabetes < Prediabetes < T2DM (linear trend, robust HC3 errors)
+  effect:      slope per group step, 95% interval
+  samples:     69 No diabetes, 25 Prediabetes, 48 T2DM
+  left out:    1 sample without a value in 'diabetes'
+  tested:      92 proteins
+  FDR < 0.05:  3 proteins
+    IL8     +0.30 NPX   FDR 0.016
+    Flt3L   +0.23 NPX   FDR 0.016
+    CDCP1   +0.23 NPX   FDR 0.033

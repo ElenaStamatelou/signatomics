@@ -1,0 +1,5 @@
+       sample_id    group  age     sex   IL8  VEGFA  CD8A
+sample                                                   
+P01          P01  control   73  female  4.28   7.47  7.16
+P02          P02     case   60  female  6.75   8.00  8.20
+P03          P03  control   63  female  6.13   7.42  7.73

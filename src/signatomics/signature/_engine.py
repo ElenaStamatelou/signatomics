@@ -20,8 +20,29 @@ from sklearn.metrics import balanced_accuracy_score, roc_auc_score
 from sklearn.model_selection import KFold, RepeatedKFold, RepeatedStratifiedKFold, StratifiedKFold, cross_val_score
 from sklearn.preprocessing import StandardScaler
 
-MODELS = ("linear", "forest")
+MODELS = ("regression", "random_forest")
 TASKS = ("binary", "multiclass", "continuous")
+_OLD_NAMES = {"linear": "regression", "forest": "random_forest"}     # names before 0.2.0
+
+
+def model_key(model: str) -> str:
+    """The model's name; the names before 0.2.0 ('linear', 'forest') still work, with a warning."""
+    if model in _OLD_NAMES:
+        new = _OLD_NAMES[model]
+        warnings.warn(f"model '{model}' is now called '{new}'; the old name will be removed in a later "
+                      f"version.", FutureWarning, stacklevel=3)
+        return new
+    if model not in MODELS:
+        raise ValueError(f"models must be from: {', '.join(MODELS)}")
+    return model
+
+
+def model_label(model: str, task: str) -> str:
+    """The model's name in reports and charts: 'logistic regression', 'ridge regression' or 'random forest'."""
+    base, _, rest = model.partition(" ")
+    name = {"regression": "ridge regression" if task == "continuous" else "logistic regression",
+            "random_forest": "random forest"}.get(base, base)
+    return f"{name} {rest}".strip()
 
 
 @dataclass
@@ -61,7 +82,7 @@ def _one_se(scores: np.ndarray) -> int:
 
 
 def _select(Z: np.ndarray, y: np.ndarray, task: str, top_k, inner: int, seed: int):
-    """Choose the proteins on training data: a sparse (L1) model, or the top_k of a ridge model.
+    """Choose the proteins on training data: the lasso (L1 penalty), or the top_k of a ridge model.
 
     Returns the chosen column numbers and a score per column (the size of its coefficient)."""
     p = Z.shape[1]
@@ -92,7 +113,7 @@ def _select(Z: np.ndarray, y: np.ndarray, task: str, top_k, inner: int, seed: in
 
 
 def _predictor(model: str, task: str, seed: int):
-    if model == "linear":
+    if model == "regression":
         return Ridge(alpha=1.0) if task == "continuous" else LogisticRegression(C=1.0, max_iter=5000)
     if task == "continuous":
         return RandomForestRegressor(300, min_samples_leaf=3, random_state=seed, n_jobs=1)

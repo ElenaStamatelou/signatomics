@@ -1,20 +1,20 @@
 """Synthetic example data, so every step can be tried without an NPX file of your own.
 
 The values are synthetic (no person, no study) and the same every time. They look like a small
-Olink Target 96 study: 60 people (30 cases, 30 controls), 92 assays (named after the
+Olink Target 96 study: 60 people (30 cases, 30 controls), 92 proteins (named after the
 Target 96 Inflammation panel), measured on two plates, one NPX file per plate: P01-P40 on
 plate 1, P29-P60 on plate 2. People P29-P40 are on both plates: the bridge samples. Plate 2
-reads higher than plate 1, by a different amount per assay. Each plate also holds the 8
+reads higher than plate 1, by a different amount per protein. Each plate also holds the 8
 controls of a Target 96 plate (3 negative, 3 plate and 2 sample controls), marked in
 ``SampleType`` as in Olink's exports.
 
 Built in on purpose, so the checks have something to find:
 
-- Plate 1: P05 with QC status WARN, P20 with FAIL, P07 far too low on every assay (an outlier);
-- Plate 2: P41 with QC status WARN, P33 far too low on every assay (a broken bridge sample);
-- ten assays mostly below the LOD, and a few around it;
+- Plate 1: P05 with QC status WARN, P20 with FAIL, P07 far too low on every protein (an outlier);
+- Plate 2: P41 with QC status WARN, P33 far too low on every protein (a broken bridge sample);
+- ten proteins mostly below the LOD, and a few around it;
 - IL-17C detectable mostly in cases;
-- four assays higher in cases (IL6, CXCL10, HGF, OSM).
+- four proteins higher in cases (IL6, CXCL10, HGF, OSM).
 """
 
 from __future__ import annotations
@@ -52,26 +52,33 @@ def _people():
     return ids, group
 
 
-def example_samples() -> pd.DataFrame:
+def example_samples(plate: int | None = None) -> pd.DataFrame:
     """The sample metadata that go with the example: one row per person.
 
     Columns: ``sample_id``, ``group`` (``"case"`` / ``"control"``), ``age``, ``sex``. Synthetic values.
+    ``plate``: ``None`` (default) gives all 60 people; ``1`` or ``2`` only the people on that plate
+    (P01-P40 or P29-P60), to go with ``example_file(1)`` or ``example_file(2)``.
     """
+    if plate not in (None, 1, 2):
+        raise ValueError("The example has two plates: example_samples(1) or example_samples(2).")
     rng = np.random.default_rng(7)
     ids, group = _people()
-    return pd.DataFrame({
+    table = pd.DataFrame({
         "sample_id": ids,
         "group": group,
         "age": rng.integers(35, 76, len(ids)),
         "sex": rng.choice(["female", "male"], len(ids)),
     })
+    if plate is not None:
+        table = table.iloc[:40] if plate == 1 else table.iloc[28:]
+    return table.reset_index(drop=True)
 
 
 def example_data() -> pd.DataFrame:
     """Both example plates in one table, in long format, as ``read_npx`` returns them.
 
     The same values as ``read_npx(example_file(1))`` and ``read_npx(example_file(2))`` stacked.
-    Columns: ``SampleID``, ``SampleType``, ``Index``, ``OlinkID``, ``Assay``, ``Panel``,
+    Columns: ``SampleID``, ``SampleType``, ``Index``, ``OlinkID``, ``Protein``, ``Panel``,
     ``PlateID``, ``QC_Warning``, ``LOD``, ``MissingFreq``, ``NPX``.
     """
     rng = np.random.default_rng(2028)
@@ -97,7 +104,7 @@ def example_data() -> pd.DataFrame:
             + [(s, "Plate 2", "SAMPLE") for s in ids[28:]]
             + [(c, "Plate 2", t) for t, c in CONTROLS])
     status = {("P05", "Plate 1"): "WARN", ("P20", "Plate 1"): "FAIL", ("P41", "Plate 2"): "WARN"}
-    broken = {("P07", "Plate 1"), ("P33", "Plate 2")}               # far too low on every assay
+    broken = {("P07", "Plate 1"), ("P33", "Plate 2")}               # far too low on every protein
 
     rows, index = [], {"Plate 1": 0, "Plate 2": 0}
     for s, plate, kind in plan:
@@ -121,7 +128,7 @@ def example_data() -> pd.DataFrame:
                 "LOD": round(lod1[p] + (shift[p] if on2 else 0.0), 4), "NPX": round(npx, 4),
             })
     df = pd.DataFrame(rows)
-    # MissingFreq: the share of samples below the LOD, per assay and plate (controls left out)
+    # MissingFreq: the share of samples below the LOD, per protein and plate (controls left out)
     is_sample = df["SampleType"] == "SAMPLE"
     below = (df["NPX"] < df["LOD"])[is_sample].groupby([df["Assay"], df["PlateID"]]).mean()
     freq = pd.MultiIndex.from_frame(df[["Assay", "PlateID"]]).map(below.round(4).to_dict())

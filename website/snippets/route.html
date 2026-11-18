@@ -1,5 +1,5 @@
 <div class="sg-map">
-<svg viewBox="0 0 860 376" role="group" aria-label="The route through signatomics. Preprocessing: read your NPX file, quality control, add your sample metadata, then the analysis table. Bridging is an optional detour, for samples on several plates. Up to the sample metadata in one call with prepare. Statistical analysis: compare groups, correlate and adjust for confounders; before-and-after designs are coming. Machine learning: find a signature and check it.">
+<svg viewBox="0 0 860 326" role="group" aria-label="The route through signatomics. Preprocessing: read your NPX file, quality control, add your sample metadata, then the analysis table. Bridging is an optional detour, for samples on several plates. Statistical analysis: compare groups (also adjusted for age, sex and other covariates) and correlate; before-and-after designs are coming. Machine learning: find a signature and check it.">
   <text class="sec pre" x="20" y="22">PREPROCESSING</text>
   <path class="e" d="M70 96 H770"/>
   <path class="e plan" d="M250 96 C330 96 350 40 410 40 C470 40 490 96 570 96"/>
@@ -7,22 +7,19 @@
   <a href="/learn/quality-control/"><g class="n done pre"><title>Quality control: look, then decide what to remove</title><circle cx="250" cy="96" r="8"/><text x="250" y="124" text-anchor="middle">Quality control</text></g></a>
   <a href="/learn/bridging/"><g class="n done pre"><title>Bridging: when your samples are on several plates</title><circle cx="410" cy="40" r="8"/><text x="410" y="22" text-anchor="middle">Bridging</text></g><text class="opt-note" x="410" y="66" text-anchor="middle">optional</text></a>
   <a href="/learn/sample-metadata/"><g class="n done pre"><title>Sample metadata</title><circle cx="570" cy="96" r="8"/><text x="570" y="124" text-anchor="middle">Sample metadata</text></g></a>
-  <a href="/learn/analysis-table/"><g class="n done pre"><title>One row per sample, one column per assay</title><circle cx="770" cy="96" r="8"/><text x="770" y="124" text-anchor="middle">Analysis table</text></g></a>
-  <path class="e" d="M70 142 V148 H570 V142"/>
-  <a href="/functions/prepare/"><text x="320" y="166" text-anchor="middle">all of it in one call: prepare</text></a>
+  <a href="/learn/analysis-table/"><g class="n done pre"><title>One row per sample, one column per protein</title><circle cx="770" cy="96" r="8"/><text x="770" y="124" text-anchor="middle">Analysis table</text></g></a>
 
-  <text class="sec stat" x="20" y="214">STATISTICAL ANALYSIS</text>
-  <path class="e" d="M90 244 H490"/>
-  <path class="e plan" d="M490 244 H690"/>
-  <a href="/learn/compare-groups/"><g class="n done stat"><title>Does each assay differ between groups?</title><circle cx="90" cy="244" r="8"/><text x="90" y="272" text-anchor="middle">Compare groups</text></g></a>
-  <a href="/learn/correlate/"><g class="n done stat"><title>Assays and a continuous variable</title><circle cx="290" cy="244" r="8"/><text x="290" y="272" text-anchor="middle">Correlate</text></g></a>
-  <a href="/learn/compare-groups/#adjust-for-age-and-sex"><g class="n done stat"><title>Adjust for age, sex and other confounders</title><circle cx="490" cy="244" r="8"/><text x="490" y="272" text-anchor="middle">Adjust for confounders</text></g></a>
-  <g class="n stat"><title>Coming: the same person measured twice or over time</title><circle cx="690" cy="244" r="8"/><text x="690" y="272" text-anchor="middle">Before and after</text></g>
+  <text class="sec stat" x="20" y="164">STATISTICAL ANALYSIS</text>
+  <path class="e" d="M90 194 H290"/>
+  <path class="e plan" d="M290 194 H490"/>
+  <a href="/learn/compare-groups/"><g class="n done stat"><title>Does each protein differ between groups? Also adjusted for age, sex and other covariates</title><circle cx="90" cy="194" r="8"/><text x="90" y="222" text-anchor="middle">Compare groups</text></g></a>
+  <a href="/learn/correlate/"><g class="n done stat"><title>Proteins and a continuous variable</title><circle cx="290" cy="194" r="8"/><text x="290" y="222" text-anchor="middle">Correlate</text></g></a>
+  <g class="n stat"><title>Coming: the same person measured twice or over time</title><circle cx="490" cy="194" r="8"/><text x="490" y="222" text-anchor="middle">Before and after</text></g>
 
-  <text class="sec ml" x="20" y="314">MACHINE LEARNING</text>
-  <path class="e" d="M90 344 H290"/>
-  <a href="/learn/find-signature/"><g class="n done ml"><title>A small set of proteins that predicts the outcome</title><circle cx="90" cy="344" r="8"/><text x="90" y="366" text-anchor="middle">Find a signature</text></g></a>
-  <a href="/learn/check-signature/"><g class="n done ml"><title>What each protein adds, learning and selection curves</title><circle cx="290" cy="344" r="8"/><text x="290" y="366" text-anchor="middle">Check the signature</text></g></a>
+  <text class="sec ml" x="20" y="264">MACHINE LEARNING</text>
+  <path class="e" d="M90 294 H290"/>
+  <a href="/learn/find-signature/"><g class="n done ml"><title>A small set of proteins that predicts the outcome</title><circle cx="90" cy="294" r="8"/><text x="90" y="316" text-anchor="middle">Find a signature</text></g></a>
+  <a href="/learn/check-signature/"><g class="n done ml"><title>What each protein adds, learning and selection curves</title><circle cx="290" cy="294" r="8"/><text x="290" y="316" text-anchor="middle">Check the signature</text></g></a>
 </svg>
 </div>
 <p class="sg-legend"><span><i class="done"></i>available: click to open the lesson</span><span><i></i>coming</span></p>

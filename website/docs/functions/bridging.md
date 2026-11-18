@@ -38,7 +38,7 @@ All bridging functions take these arguments:
 
 Bridge samples are matched by tidy ID, so `"B 01"` on one plate matches `"B_01"` on the
 other. A sample measured twice on the same plate is averaged first. Control samples and control
-assays are never used.
+proteins are never used.
 
 ---
 
@@ -60,7 +60,7 @@ bridge_check(npx, *, batch="PlateID", reference=None, group=None, samples=None, 
 | `npx` | DataFrame | — | all plates in one table (`pd.concat` separate files) |
 | `group` | str | `None` | a column of your sample metadata: checks whether the bridge samples cover every group, and whether the shift is the same in each group |
 | `samples`, `on` | | `None` | your sample metadata and its ID column, when `group` is a column there: only looked up, as in [`qc_report`](quality.md#qc_report) |
-| `min_bridges` | int | `8` | fewer bridge samples than this gives a warning; proteins with fewer usable pairs are flagged in `.factors` |
+| `min_bridges` | int | `8` | fewer bridge samples than this gives a warning; proteins with fewer usable pairs are flagged in `.factors`. Olink recommends 8 to 16 bridge samples for Target 96, and more for Explore and Reveal |
 | `tolerance` | float | `0.1` | a protein whose shift is larger than this (NPX) counts as "still shifted" |
 | `show_ids` | bool | `True` | list sample IDs |
 | `verbose` | bool | `True` | print the report |
@@ -126,15 +126,7 @@ chk.factors.sort_values("adjustment").head()
 ```
 
 ```text
-Bridging check
-  reference: Inflammation F.I.F 21/03/2024
-  Inflammation PRAESIIDIUM Giraudi 04_03_2025: reads +0.52 NPX compared with Inflammation F.I.F 21/03/2024 (median over assays; per assay -0.96 to +2.30), measured on 29 bridge samples
-    assays shifted by more than 0.1 NPX: 83 of 92 - bridging needed
-    noise: the bridge samples' differences spread 0.44 NPX per assay (typical IQR); bridging removes the shift; this noise stays
-    bridge samples that shift differently from the others (a mix-up or a degraded tube?): 2 (IDs hidden)
-  'diabetes' among the bridge samples: No diabetes: 9 of 69; T2DM: 9 of 48; Prediabetes: 10 of 25
-    overall shift on Inflammation PRAESIIDIUM Giraudi 04_03_2025 per group: No diabetes +0.56; Prediabetes +0.57; T2DM +0.53 (largest difference 0.04 NPX)
-    assays whose shift differs by more than 0.5 NPX between groups: IL13, IL-22 RA1, TNFB, 4E-BP1, IL-24, IL2 - with few bridge samples per group this is often noise; look at them before trusting group differences for these assays
+--8<-- "outputs/pad_bridge_check.txt"
 ```
 
 ---
@@ -182,11 +174,7 @@ bridged = so.bridge_plates(clean)
 ```
 
 ```text
-Bridging report
-  reference (kept as it is): Inflammation F.I.F 21/03/2024
-  Inflammation PRAESIIDIUM Giraudi 04_03_2025: 92 assays adjusted by their adjustment factor (median -0.52 NPX, from -2.30 to +0.96), each from 29 bridge samples
-  NPX and LOD shifted together, so 'below the LOD' stays the same; the original values are in NPX_unbridged and LOD_unbridged
-  check: plot_bridge_pca(before, after) - each bridge sample's two measurements should now lie together
+--8<-- "outputs/pad_bridge_plates.txt"
 ```
 
 ---
@@ -218,7 +206,7 @@ Arguments as in the [shared arguments](#shared-arguments). At most 3 plates besi
 
 <figure class="sg-chart" markdown>
 <div class="sg-plot" data-src="../../assets/figures/bridge_shift.json"><img src="../../assets/figures/bridge_shift.svg" alt="Per protein: the bridging-sample differences between plate 2 and the reference, with their median and middle 50%" loading="lazy"></div>
-<figcaption markdown>`plot_bridge_shift(clean)` on PAD000040, before bridging; 24 of the 92 proteins, spread over the range of shifts.</figcaption>
+<figcaption markdown>`plot_bridge_shift(clean)` on PAD000040, before bridging; 24 of the 92 proteins, spread over the range of shifts. Each dot: a bridge sample's difference from the reference plate; 0 = lined up.</figcaption>
 </figure>
 
 ### `plot_bridge_bland_altman`
@@ -234,7 +222,7 @@ plot_bridge_bland_altman(npx, proteins=None, *, batch="PlateID", reference=None,
 
 | Argument | Default | Meaning |
 |---|---|---|
-| `proteins` | `None` | 1 to 12 proteins, one panel each. Default: three, chosen from the data: the largest shift up, about none (among well-measured assays), the largest shift down |
+| `proteins` | `None` | 1 to 12 proteins, one panel each. Default: three, chosen from the data: the largest shift up, about none (among well-measured proteins), the largest shift down |
 | `show_ids` | `False` | sample IDs in the hover text |
 
 The solid line is the **median difference**: the plate shift that bridging removes. The dotted
@@ -247,7 +235,7 @@ the median lies on 0.
 
 <figure class="sg-chart" markdown>
 <div class="sg-plot" data-src="../../assets/figures/bridge_bland_altman.json"><img src="../../assets/figures/bridge_bland_altman.svg" alt="Bland-Altman plots of the PAD000040 bridge samples for three proteins" loading="lazy"></div>
-<figcaption markdown>`plot_bridge_bland_altman(clean)` on PAD000040: three proteins whose plate shift differs (the solid lines). The point far below in each panel is sample 249, the broken tube.</figcaption>
+<figcaption markdown>`plot_bridge_bland_altman(clean)` on PAD000040: three proteins whose plate shift differs. Solid line: the median difference; dotted lines: median ± 1.96 robust SD. The point far below in each panel is sample 249, the broken tube.</figcaption>
 </figure>
 
 ### `plot_bridge_scatter`
@@ -269,7 +257,7 @@ plot_bridge_scatter(npx, proteins, *, batch="PlateID", reference=None,
 
 <figure class="sg-chart" markdown>
 <div class="sg-plot" data-src="../../assets/figures/bridge_scatter.json"><img src="../../assets/figures/bridge_scatter.svg" alt="Three panels: bridge samples, NPX on the reference plate against plate 2, for DNER, TNFRSF9 and ST1A1" loading="lazy"></div>
-<figcaption markdown>`plot_bridge_scatter(clean, ["DNER", "TNFRSF9", "ST1A1"])` on PAD000040: plate 2 reads DNER higher, TNFRSF9 the same, ST1A1 lower. The dot at the bottom of each panel is sample 249, a broken tube.</figcaption>
+<figcaption markdown>`plot_bridge_scatter(clean, ["DNER", "TNFRSF9", "ST1A1"])` on PAD000040: plate 2 reads DNER higher, TNFRSF9 the same, ST1A1 lower. On the dashed line both plates agree; dotted lines: the LOD per plate. The dot at the bottom of each panel is sample 249, a broken tube.</figcaption>
 </figure>
 
 ### `plot_bridge_pca`

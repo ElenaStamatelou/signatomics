@@ -24,14 +24,14 @@ from .qc import (_below_lod_by_group, _control_masks, _protein_col, _sample_qc_t
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
 CRITICAL = "#d03b3b"
 INK, INK_2, MUTED = "#0b0b0b", "#52514e", "#898781"
-GRID, AXIS, SURFACE = "#e1e0d9", "#c3c2b7", "#fcfcfb"
-FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif"
+GRID, AXIS, SURFACE = "#e8e7e1", "#c3c2b7", "#ffffff"
+FONT = "'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"   # the website's font first
 
 
 def _style(fig: go.Figure, title: str, subtitle=None, legend_title: str | None = None) -> go.Figure:
     """The one style of every chart.
 
-    title: what is shown, in plain words (Olink's terms: assay, bridge samples, LOD).
+    title: what is shown, in plain words (Olink's terms: protein, bridge samples, LOD).
     subtitle: how to read it; a list of short parts, joined with " · ".
     The legend sits above the plot, under the subtitle, in every chart.
     """
@@ -43,7 +43,7 @@ def _style(fig: go.Figure, title: str, subtitle=None, legend_title: str | None =
     fig.update_layout(
         title=dict(text=text, x=0.01, xanchor="left", yref="container", y=1 - 16 / height,
                    yanchor="top", font=dict(size=17, color=INK)),
-        font=dict(family=FONT, size=12, color=INK_2),
+        font=dict(family=FONT, size=13, color=INK_2),
         plot_bgcolor=SURFACE, paper_bgcolor=SURFACE,
         hoverlabel=dict(bgcolor="white", font=dict(family=FONT, color=INK)),
         legend=dict(orientation="h", yref="container", y=1 - 72 / height, yanchor="top",
@@ -51,8 +51,8 @@ def _style(fig: go.Figure, title: str, subtitle=None, legend_title: str | None =
                     title=dict(text=f"{legend_title}: " if legend_title else "", font=dict(color=INK_2))),
         margin=dict(t=140),
     )
-    fig.update_xaxes(gridcolor=GRID, linecolor=AXIS, zeroline=False, tickfont=dict(color=MUTED))
-    fig.update_yaxes(gridcolor=GRID, linecolor=AXIS, zeroline=False, tickfont=dict(color=MUTED))
+    fig.update_xaxes(gridcolor=GRID, linecolor=AXIS, zeroline=False, tickfont=dict(size=12, color=INK_2))
+    fig.update_yaxes(gridcolor=GRID, linecolor=AXIS, zeroline=False, tickfont=dict(size=12, color=INK_2))
     return fig
 
 
@@ -99,7 +99,7 @@ def plot_below_lod(npx: pd.DataFrame, *, group: str | None = None, samples=None,
 
     fig = go.Figure()
     if max_below_lod is None:
-        fig.add_bar(x=p["pct"], y=p[label].astype(str), orientation="h", name="assays",
+        fig.add_bar(x=p["pct"], y=p[label].astype(str), orientation="h", name="proteins",
                     showlegend=False, marker=dict(color=SERIES[0], line=dict(color=SURFACE, width=1)),
                     hovertemplate="<b>%{y}</b><br>%{x:.1f}% below LOD<extra></extra>")
     else:
@@ -111,13 +111,13 @@ def plot_below_lod(npx: pd.DataFrame, *, group: str | None = None, samples=None,
                         marker=dict(color=colour, line=dict(color=SURFACE, width=1)),
                         hovertemplate="<b>%{y}</b><br>%{x:.1f}% below LOD<extra></extra>")
         fig.add_vline(x=max_below_lod * 100, line=dict(dash="dash", color=INK_2, width=1.5))
-    subtitle = [f"{len(p)} assays shown",
+    subtitle = [f"{len(p)} proteins shown",
                 f"the other {never} are never below the LOD" if only_with_below and never else ""]
     fig.update_layout(barmode="overlay", height=max(340, 22 * len(p) + 190), width=780,
                       margin=dict(l=120, r=30, b=60), bargap=0.25,
                       yaxis=dict(categoryorder="array", categoryarray=p[label].astype(str).tolist()))
     fig.update_xaxes(title="measurements below the LOD (%)", range=[0, 102])
-    return _style(fig, "Measurements below the detection limit (LOD) per assay", subtitle)
+    return _style(fig, "Measurements below the detection limit (LOD) per protein", subtitle)
 
 
 def _plot_below_lod_by_group(npx: pd.DataFrame, group: str, only_with_below: bool) -> go.Figure:
@@ -137,9 +137,8 @@ def _plot_below_lod_by_group(npx: pd.DataFrame, group: str, only_with_below: boo
     fig.update_layout(barmode="group", height=max(380, 30 * len(t) + 190), width=800,
                       margin=dict(l=120, r=30, b=60), bargap=0.25, bargroupgap=0.05)
     fig.update_xaxes(title="measurements below the LOD (%)", range=[0, 102])
-    return _style(fig, f"Measurements below the detection limit (LOD) per assay and {group}",
-                  ["largest difference between groups at the top",
-                   "an assay detectable in one group only can be a signal"], legend_title=group)
+    return _style(fig, f"Measurements below the detection limit (LOD) per protein and {group}",
+                  ["largest difference between groups at the top"], legend_title=group)
 
 
 # ------------------------------------------------------------------------------------------
@@ -158,7 +157,7 @@ def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, samples=None,
     Parameters
     ----------
     group : sample-information column for colours (at most 3 groups), e.g. ``"diabetes"``.
-    proteins : list of proteins (Assay names) to show. Default: all, or for panels with more
+    proteins : list of proteins (Protein names) to show. Default: all, or for panels with more
         than ``max_proteins`` the 48 with the most values below the LOD (the title says so).
     order : ``"name"`` (alphabetical) or ``"below_lod"`` (most below LOD first).
     show_ids : include sample IDs in the hover text.
@@ -245,7 +244,7 @@ def plot_npx_strip(npx: pd.DataFrame, *, group: str | None = None, samples=None,
     step = 14 + 8 * len(groups)                                    # pixels per protein
     fig.update_layout(height=380 * len(rows) + 90, width=max(700, step * min(per_row, len(names)) + 160),
                       margin=dict(l=70, r=30, t=120, b=90))
-    return _style(fig, f"{value} per assay" + (f" and {group}" if group else ""), subtitle,
+    return _style(fig, f"{value} per protein" + (f" and {group}" if group else ""), subtitle,
                   legend_title=group)
 
 
@@ -277,9 +276,7 @@ def plot_group_by_plate(npx: pd.DataFrame, group: str, *, samples=None, on=None)
     fig.update_layout(barmode="stack", height=480, width=760, margin=dict(l=70, r=30, b=60))
     fig.update_yaxes(title="number of samples")
     fig.update_xaxes(title=group)
-    return _style(fig, f"Samples per plate and {group}",
-                  ["a group missing from a plate: a plate difference can look like a group difference"],
-                  legend_title="measured on")
+    return _style(fig, f"Samples per plate and {group}", legend_title="measured on")
 
 
 # ------------------------------------------------------------------------------------------
@@ -332,14 +329,14 @@ def plot_sample_qc(npx: pd.DataFrame, *, sd: float = 3.0, show_ids: bool = False
                 v = first[f"{col}_{edge}"]
                 kw = dict(line=dict(dash="dash", color=MUTED, width=1), row=1, col=c)
                 fig.add_vline(x=v, **kw) if axis == "x" else fig.add_hline(y=v, **kw)
-        fig.update_xaxes(title="median NPX over all assays", row=1, col=c)
-        fig.update_yaxes(title="spread (IQR) of NPX over all assays" if c == 1 else None, row=1, col=c)
+        fig.update_xaxes(title="median NPX over all proteins", row=1, col=c)
+        fig.update_yaxes(title="spread (IQR) of NPX over all proteins" if c == 1 else None, row=1, col=c)
     n_out = int(t["outlier"].sum())
     fig.update_layout(height=600, width=max(680, 480 * len(panels)), margin=dict(l=70, r=30, b=60))
     return _style(fig, "Median and spread of NPX per sample",
                   [str(panels[0]) if (not several and panels[0] is not None) else "",
-                   f"{n_out} outlier{'s' if n_out != 1 else ''} beyond {sd:g} SD (dashed lines)",
-                   "check outliers for technical problems"], legend_title="plate")
+                   f"{n_out} outlier{'s' if n_out != 1 else ''} beyond {sd:g} SD (dashed lines)"],
+                  legend_title="plate")
 
 
 # ------------------------------------------------------------------------------------------
@@ -419,7 +416,7 @@ def plot_bridge_shift(npx: pd.DataFrame, *, batch: str = "PlateID", reference=No
     fig.update_yaxes(tickvals=list(range(len(order))), ticktext=order,
                      range=[-0.8, len(order) - 0.2], showgrid=False)
     fig.update_xaxes(title=f"difference from the reference, {ref} (NPX)")
-    return _style(fig, "Plate shift per assay", subtitle)
+    return _style(fig, "Plate shift per protein", subtitle)
 
 
 def _pca_scores(x: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
@@ -503,7 +500,7 @@ def plot_bridge_pca(before: pd.DataFrame, after: pd.DataFrame | None = None, *,
                          f"{np.hypot(paired['pc1'], paired['pc2']).median():.1f} apart (median)")
     fig.update_layout(height=560, width=520 * len(tables) + 60, margin=dict(l=70, r=30, b=60))
     return _style(fig, "PCA of the bridge samples, before and after bridging",
-                  notes + ["after bridging, the plates should overlap"], legend_title="plate")
+                  notes, legend_title="plate")
 
 
 def plot_bridge_scatter(npx: pd.DataFrame, proteins, *, batch: str = "PlateID", reference=None,
@@ -513,7 +510,7 @@ def plot_bridge_scatter(npx: pd.DataFrame, proteins, *, batch: str = "PlateID", 
 
     Points on the dashed diagonal (y = x) mean both plates give the same value. Before bridging
     the cloud lies above or below the diagonal by the plate shift; after bridging it lies on it.
-    Dotted lines mark the detection limit (LOD) on each plate. 1 to 12 proteins (Assay names).
+    Dotted lines mark the detection limit (LOD) on each plate. 1 to 12 proteins (Protein names).
     """
     from .bridge import _bridge_differences
 
@@ -561,7 +558,7 @@ def plot_bridge_scatter(npx: pd.DataFrame, proteins, *, batch: str = "PlateID", 
         fig.update_xaxes(range=[lo, hi], title="reference" if r == rows else None, row=r, col=c)
         fig.update_yaxes(range=[lo, hi], title="other plate" if c == 1 else None, row=r, col=c)
     fig.update_layout(height=330 * rows + 230, width=330 * ncol + 120, margin=dict(l=70, r=30, b=60))
-    return _style(fig, "NPX of the bridge samples on two plates, per assay",
+    return _style(fig, "NPX of the bridge samples on two plates, per protein",
                   [f"x = reference ({ref})", "dotted = LOD per plate",
                    "on the dashed line both plates agree"])
 
@@ -579,7 +576,7 @@ def plot_bridge_bland_altman(npx: pd.DataFrame, proteins=None, *, batch: str = "
     tube does not widen them and shows up outside them. Before bridging the median lies away from
     0; after bridging it lies on 0.
 
-    proteins : 1 to 12 proteins (Assay names). Default: three, chosen from the data: the largest
+    proteins : 1 to 12 proteins (Protein names). Default: three, chosen from the data: the largest
         shift up, about no shift, and the largest shift down.
     """
     from .bridge import _bridge_differences
@@ -589,7 +586,7 @@ def plot_bridge_bland_altman(npx: pd.DataFrame, proteins=None, *, batch: str = "
     label = "Assay" if "Assay" in d.columns else _protein_col(d)
     if proteins is None:
         shift = d.groupby(label)["difference"].median().dropna().sort_values()
-        # "about no shift" among well-measured assays (low ones are mostly noise)
+        # "about no shift" among well-measured proteins (low ones are mostly noise)
         level = d.groupby(label)[["NPX_reference", "NPX_plate"]].median().mean(axis=1)
         steady = shift[level.reindex(shift.index) >= level.quantile(0.25)]
         proteins = list(dict.fromkeys([shift.index[-1], steady.abs().idxmin(), shift.index[0]]))
@@ -638,6 +635,6 @@ def plot_bridge_bland_altman(npx: pd.DataFrame, proteins=None, *, batch: str = "
         fig.update_xaxes(title="mean of the two plates (NPX)" if r == rows else None, row=r, col=c)
         fig.update_yaxes(title="difference (NPX)" if c == 1 else None, row=r, col=c)
     fig.update_layout(height=330 * rows + 230, width=330 * ncol + 120, margin=dict(l=70, r=40, b=60))
-    return _style(fig, "Bland-Altman plot of the bridge samples, per assay",
+    return _style(fig, "Bland-Altman plot of the bridge samples, per protein",
                   [f"difference = other plate minus reference ({ref})", "solid = median difference",
                    "dotted = median ± 1.96 robust SD"])

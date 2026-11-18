@@ -28,7 +28,7 @@ import pandas as pd
 from scipy import stats
 
 from .adjust import adjusted_comparison, covariate_lines
-from ._common import StatsResult, _fmt_p, _n, _proteins, fdr_bh, holm
+from ._common import StatsResult, _fmt_p, _n, _proteins, fdr_bh, holm, result_lines
 
 TESTS = ("welch", "mann-whitney")
 
@@ -245,18 +245,19 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
     mann = test == "mann-whitney"
     if k == 2:
         name = "Mann-Whitney U test" if mann else "Welch's t-test"
-        what = ("Hodges-Lehmann shift in NPX" if mann else "difference in mean NPX (= log2 fold change)")
-        lines.append(f"test: {name}; effect: {what}, {levels[1]} minus {ref}, "
-                     f"with {level:.0%} interval")
+        title = f"Group comparison: {levels[1]} vs {ref} ({name})"
+        what = "Hodges-Lehmann shift in NPX" if mann else "difference in mean NPX (log2 fold change)"
+        lines.append(f"effect: {what}, {levels[1]} minus {ref}, {level:.0%} interval")
     elif ordered:
-        lines.append("test: " + ("Jonckheere-Terpstra trend test" if mann else
-                                 "linear trend over the group steps (robust HC3 standard errors)")
-                     + f"; order: {' < '.join(map(str, levels))}")
+        name = "Jonckheere-Terpstra trend test" if mann else "linear trend, robust HC3 errors"
+        title = f"Group comparison: trend over {' < '.join(map(str, levels))} ({name})"
+        if not mann:
+            lines.append(f"effect: slope per group step, {level:.0%} interval")
     else:
-        lines.append("test: " + ("Kruskal-Wallis" if mann else "Welch's ANOVA")
-                     + "; then every pair of groups, Holm-adjusted within each protein")
-    lines.append("groups: " + ", ".join(f"{g} {sizes[g]}" for g in levels)
-                 + f" (reference: {ref})")
+        name = "Kruskal-Wallis" if mann else "Welch's ANOVA"
+        title = f"Group comparison: {', '.join(map(str, levels))} ({name})"
+        lines.append(f"pairs: every pair of groups, Holm-adjusted per protein, in .pairwise (reference: {ref})")
+    lines.append("samples: " + ", ".join(f"{sizes[g]} {g}" for g in levels))
     if (~has_group).any():
         lines.append(f"left out: {_n(int((~has_group).sum()), 'sample')} without a value in '{group}'")
 
@@ -274,10 +275,10 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
                              f"missing covariate: {', '.join(map(str, too_small))}.")
         rows, pairs, skipped, n_terms = adjusted_comparison(data, prots, group, levels, ref, covariates,
                                                             ordered=ordered, level=level)
-        what = ("difference in mean NPX (= log2 fold change), " + f"{levels[1]} minus {ref}" if k == 2
-                else "slope per group step" if ordered else "robust Wald F-test for any group difference, "
-                "then every pair of groups, Holm-adjusted within each protein")
-        lines[0] = f"test: linear model, NPX ~ {group} + {' + '.join(covariates)}; effect: {what}"
+        title = title.rsplit(" (", 1)[0] + ", adjusted (linear model)"
+        if k > 2 and not ordered:
+            lines[0] = ("pairs: robust Wald F-test for any group difference, then every pair of "
+                        f"groups, Holm-adjusted per protein, in .pairwise (reference: {ref})")
         lines.extend(covariate_lines(table, group, covariates, len(data), dropped, n_terms))
         prots = []                       # the unadjusted loop below has nothing left to do
     # in a pair with the reference, the reference is subtracted; else the earlier group
@@ -330,7 +331,7 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
         shares = _below_lod_shares(below_lod, groups, list(out["protein"]), levels)
         out = out.merge(shares, left_on="protein", right_index=True, how="left")
     out = out.sort_values("p", kind="stable").reset_index(drop=True)
-    result = StatsResult(title="Group comparison" + (" (adjusted)" if covariates else ""), lines=lines, table=out,
+    result = StatsResult(title=title, lines=lines, table=out,
                          not_tested=pd.DataFrame(skipped, columns=["protein", "reason"]))
 
     if pairs:
@@ -340,21 +341,9 @@ def compare_groups(table: pd.DataFrame, group: str, *, test: str = "welch", refe
         pw["omnibus_significant"] = pw["protein"].map(hit).fillna(False).astype(bool)
         result.pairwise = pw
 
-    lines.append(f"tested: {_n(len(out), 'protein')}"
-                 + (f"; not tested: {len(skipped)} (see .not_tested)" if skipped else ""))
-    sig = out[out["fdr"] < alpha]
-    if sig.empty:
-        lines.append(f"FDR below {alpha}: none (lowest FDR {_fmt_p(out['fdr'].min())})")
-    else:
-        effect = "difference" if k == 2 else "slope" if "slope" in out else None
-        shown = []
-        for _, r in sig.head(8).iterrows():
-            extra = f"{r[effect]:+.2f} NPX, " if effect else ""
-            shown.append(f"{r['protein']} ({extra}FDR {_fmt_p(r['fdr'])})")
-        more = f", ... ({len(sig)} in total)" if len(sig) > 8 else ""
-        lines.append(f"FDR below {alpha}: {_n(len(sig), 'protein')}: " + ", ".join(shown) + more)
-    if pairs:
-        lines.append(f"pairwise: read .pairwise (p_holm) for the proteins with FDR below {alpha}")
+    effect = "difference" if k == 2 else "slope" if "slope" in out else None
+    lines.extend(result_lines(out, alpha, skipped,
+                              (lambda r: f"{r[effect]:+.2f} NPX") if effect else None))
     if verbose:
         print(result)
     return result

@@ -1,7 +1,8 @@
 """find_signature: a small set of proteins that predicts an outcome, with an honest estimate.
 
 The estimate comes from nested cross-validation. In every fold the proteins are chosen on the
-training people only (an L1 model with its own inner cross-validation picks the penalty, by the one-standard-error rule: the sparsest model within one standard error of the best), a
+training people only (the lasso, with its own inner cross-validation picking the penalty by the
+one-standard-error rule: the sparsest model within one standard error of the best), a
 model is fitted on them, and the people left out are predicted. Nothing about the left-out
 people is used before that. The proteins that are chosen in many folds form the signature.
 """
@@ -17,7 +18,8 @@ from sklearn.preprocessing import StandardScaler
 
 from ..stats._common import _n
 from ..stats.adjust import _design_covariates
-from ._engine import MODELS, TASKS, _predict, _predictor, _quiet, _select, corrected_ci, run_cv
+from ._engine import MODELS, TASKS, _predict, _predictor, _quiet, _select, corrected_ci, model_key, model_label, run_cv
+from .._report import format_report, table_lines
 
 
 @dataclass
@@ -50,16 +52,16 @@ class SignatureResult:
     _inputs: dict = field(default_factory=dict, repr=False)   # what the checks need to rerun the folds
 
     def __str__(self) -> str:
-        return self.title + "\n  " + "\n  ".join(self.lines)
+        return format_report(self.title, self.lines)
 
-    def _repr_markdown_(self) -> str:
-        return f"**{self.title}**\n\n" + "\n".join(f"- {line}" for line in self.lines)
+    def __repr__(self) -> str:       # notebooks show the same text as print()
+        return str(self)
 
-    def predict(self, table: pd.DataFrame, model: str = "linear") -> pd.Series | pd.DataFrame:
+    def predict(self, table: pd.DataFrame, model: str = "regression") -> pd.Series | pd.DataFrame:
         """Predictions for new people from the final model (proteins and covariates as columns)."""
         if self._final is None:
             raise ValueError("No signature was found, so there is no model to predict with.")
-        return self._final.predict(table, model)
+        return self._final.predict(table, model_key(model))
 
 
 class _Final:
@@ -181,8 +183,9 @@ def find_signature(table: pd.DataFrame, outcome: str, *, positive=None, task: st
     covariates : columns that go into every model next to the proteins (e.g. ``["age", "sex"]``)
         and are never chosen or dropped. The report then also gives the model on the covariates
         alone: the proteins add what the gap between the two shows.
-    models : ``"linear"`` (logistic regression, or ridge for a number) and ``"forest"`` (random
-        forest). Both are reported; no model is picked as the best.
+    models : ``"regression"`` (logistic regression; ridge regression for a number) and
+        ``"random_forest"`` (random forest). Both are reported; no model is picked as the best.
+        The names before version 0.2.0, ``"linear"`` and ``"forest"``, still work.
     n_splits, n_repeats : outer folds and repeats (default 5 x 5 = 25 folds).
     min_frequency : a protein belongs to the signature when at least this share of the folds chose
         it (default 0.5).
@@ -191,10 +194,7 @@ def find_signature(table: pd.DataFrame, outcome: str, *, positive=None, task: st
 
     Returns a ``SignatureResult``.
     """
-    unknown = [m for m in models if m not in MODELS]
-    if unknown:
-        raise ValueError(f"models must be from: {', '.join(MODELS)}")
-    models = tuple(models)
+    models = tuple(model_key(m) for m in ([models] if isinstance(models, str) else models))
     data, P, C, y, task, classes, covariates, info = prepare_xy(
         table, outcome, positive=positive, task=task, proteins=proteins, covariates=covariates)
     n = len(y)
@@ -261,50 +261,57 @@ def _report_lines(res, n, n_prot, n_folds, n_splits, n_repeats, min_frequency, i
     task = res.task
     lines = []
     if task == "binary":
-        what = f"predicting '{res.outcome}' = {classes[-1]} (binary)"
+        what = f"{res.outcome} = {classes[-1]}"
     elif task == "multiclass":
-        what = f"predicting '{res.outcome}' ({len(classes)} classes)"
+        what = f"{res.outcome} ({len(classes)} classes)"
     else:
-        what = f"predicting '{res.outcome}' (a number)"
-    lines.append(what)
+        what = f"{res.outcome} (a number)"
+    res.title = f"Biomarker signature: {what}"
     if task == "binary":
         k = int(y.sum())
-        lines.append(f"people: {n} ({k} {classes[-1]}, {n - k} {classes[0]}); {_n(n_prot, 'protein')}")
+        lines.append(f"people: {n} ({k} {classes[-1]}, {n - k} {classes[0]})")
     elif task == "multiclass":
         lines.append(f"people: {n} (" + ", ".join(f"{c} {int((y == i).sum())}" for i, c in enumerate(classes))
-                     + f"); {_n(n_prot, 'protein')}")
+                     + ")")
     else:
-        lines.append(f"people: {n}; {_n(n_prot, 'protein')}")
+        lines.append(f"people: {n}")
+    lines.append(f"proteins: {n_prot}")
     if info["no_outcome"]:
         lines.append(f"left out: {_n(info['no_outcome'], 'sample')} without a value in '{res.outcome}'")
     if info["no_covariate"]:
         lines.append(f"left out: {_n(info['no_covariate'], 'sample')} with a missing covariate")
-    lines.append(f"method: nested cross-validation, {n_splits} folds x {n_repeats} repeats = {n_folds} folds; in every "
-                 f"training part an L1 model (penalty chosen by inner cross-validation, the one-standard-error rule) chooses the proteins"
-                 + (f"; {', '.join(covariates)} " + ("enter every model and are never dropped" if len(covariates) > 1 else "enters every model and is never dropped") if covariates else ""))
+    lines.append(f"method: nested cross-validation ({n_splits} folds x {n_repeats} repeats)")
+    lines.append("selection: lasso, inside each training fold")
+    if covariates:
+        lines.append(f"covariates: {', '.join(covariates)} (in every model, never dropped)")
     perf = res.performance
-    primary = "auc" if task != "continuous" else "spearman"
+    if task == "binary":
+        head, extra = "AUC (95% interval)", None
+    elif task == "multiclass":
+        head, extra = "AUC (95% interval), balanced accuracy", "balanced_accuracy"
+    else:
+        head, extra = "Spearman r (95% interval), RMSE", "rmse"
+    primary = "spearman" if task == "continuous" else "auc"
+    rows = []
     for _, r in perf[perf["metric"] == primary].iterrows():
-        lines.append(f"{r['model']}: {primary.upper() if primary == 'auc' else 'Spearman r'} {r['mean']:.2f} "
-                     f"(95% interval {r['ci_low']:.2f} to {r['ci_high']:.2f})")
-    if task == "multiclass":
-        for _, r in perf[perf["metric"] == "balanced_accuracy"].iterrows():
-            lines.append(f"{r['model']}: balanced accuracy {r['mean']:.2f}")
-    if task == "continuous":
-        for _, r in perf[perf["metric"] == "rmse"].iterrows():
-            lines.append(f"{r['model']}: RMSE {r['mean']:.2f}")
+        row = [model_label(r["model"], task), f"{r['mean']:.2f}", f"{r['ci_low']:.2f} to {r['ci_high']:.2f}"]
+        if extra:
+            e = perf[(perf["metric"] == extra) & (perf["model"] == r["model"])]["mean"]
+            row.append(f"{e.iloc[0]:.2f}" if len(e) else "")
+        rows.append(row)
+    lines.append(f"performance: {head}")
+    lines += table_lines(rows)
     empty = int((res.folds[res.folds["model"] == res.folds["model"].iloc[0]]["n_selected"] == 0).sum())
     if empty:
-        lines.append(f"{_n(empty, 'fold')} chose no protein; those folds predict what the training people show "
-                     f"(no information) and count in the averages")
+        lines.append(f"{_n(empty, 'fold')} chose no protein; those folds predict what the training people "
+                     f"show, and count in the averages")
     sig = res.signature
     if sig:
         top = res.proteins[res.proteins["in_signature"]].head(8)
-        shown = ", ".join(f"{r['protein']} ({r['frequency']:.0%})" for _, r in top.iterrows())
-        more = f", ... ({len(sig)} in total)" if len(sig) > 8 else ""
-        lines.append(f"signature: {_n(len(sig), 'protein')} chosen in at least {min_frequency:.0%} of the folds: {shown}{more}")
+        lines.append(f"signature: {_n(len(sig), 'protein')}, chosen in at least {min_frequency:.0%} of the folds")
+        lines += table_lines([[str(r["protein"]), f"{r['frequency']:.0%}"] for _, r in top.iterrows()])
+        if len(sig) > 8:
+            lines.append(f"  ... {len(sig)} in total, in .signature")
     else:
-        lines.append(f"signature: no protein was chosen in at least {min_frequency:.0%} of the folds")
-    lines.append("the performance above comes from people left out of every step that chose proteins; "
-                 "the final model (.predict) is fitted on everyone")
+        lines.append(f"signature: none (no protein chosen in at least {min_frequency:.0%} of the folds)")
     return lines

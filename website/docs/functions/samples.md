@@ -9,6 +9,8 @@ Sample metadata (demographics, clinical data, lab values, …) to the NPX data, 
 which IDs have no match.
 { .lede }
 
+--8<-- "sample-metadata.html"
+
 ## `add_sample_info`
 
 Add the columns of your sample metadata to the NPX data, and report every ID without a match.
@@ -42,7 +44,8 @@ add_sample_info(npx, samples, *, on, npx_on="SampleID",
 The matching report is stored in `df.attrs["sample_report"]`. It lists:
 
 - how many samples matched, and how many only after tidying the IDs;
-- which IDs are only in the protein data (marked WARNING);
+- how many control samples (from `SampleType`) have no sample metadata;
+- which other IDs are only in the protein data (marked WARNING);
 - which IDs are only in your sample metadata.
 
 **Errors**
@@ -57,9 +60,5 @@ data = so.add_sample_info(plates, "2025.05.08_sample_manifest.xlsx", on="FIF ID"
 ```
 
 ```text
-Matching report
-  matched on: SampleID (NPX data) = FIF ID (your sample metadata)
-  matched: 142 of 143 sample IDs in the NPX data
-  WARNING missing from your sample metadata (kept, without sample metadata): 249
-  columns in both tables (yours renamed with the ending _samplelist): PlateID
+--8<-- "outputs/pad_add_sample_info_plates.txt"
 ```

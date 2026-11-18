@@ -9,7 +9,7 @@ from signatomics.signature import (find_signature, learning_curve, plot_contribu
                                    plot_selection_frequency, plot_signature_performance,
                                    protein_contributions, selection_curve)
 
-FAST = dict(n_splits=4, n_repeats=1, models=("linear",), verbose=False)
+FAST = dict(n_splits=4, n_repeats=1, models=("regression",), verbose=False)
 
 
 def _table(n=120, p=40, signal=(0, 1, 2), effect=1.0, seed=0, kind="binary"):
@@ -44,7 +44,7 @@ def test_binary_finds_the_built_in_signal():
 def test_noise_gives_no_skill_because_selection_stays_inside_the_folds():
     # 150 proteins of pure noise and 50 people: choosing proteins on everyone first would give a high AUC
     t = _table(n=50, p=150, signal=(), seed=4)
-    r = find_signature(t, "outcome", positive="case", n_splits=5, n_repeats=2, models=("linear",), verbose=False)
+    r = find_signature(t, "outcome", positive="case", n_splits=5, n_repeats=2, models=("regression",), verbose=False)
     row = r.performance.query("metric == 'auc'").iloc[0]
     assert row["ci_low"] < 0.5 < row["ci_high"] and row["mean"] < 0.65
 
@@ -70,10 +70,10 @@ def test_covariates_get_a_baseline_and_are_never_chosen():
     t["age"] = t["age"] + (t["outcome"] == "case") * 10                       # age predicts the outcome too
     r = find_signature(t, "outcome", positive="case", covariates=["age"], **FAST)
     models = set(r.performance["model"])
-    assert models == {"linear", "linear (covariates only)"}
+    assert models == {"regression", "regression (covariates only)"}
     assert "age" not in r.proteins["protein"].tolist()
-    base = r.performance.query("model == 'linear (covariates only)' and metric == 'auc'")["mean"].iloc[0]
-    full = r.performance.query("model == 'linear' and metric == 'auc'")["mean"].iloc[0]
+    base = r.performance.query("model == 'regression (covariates only)' and metric == 'auc'")["mean"].iloc[0]
+    full = r.performance.query("model == 'regression' and metric == 'auc'")["mean"].iloc[0]
     assert full > base > 0.6
 
 
@@ -91,7 +91,7 @@ def test_predict_gives_probabilities_for_new_people():
     r = find_signature(t, "outcome", positive="case", **FAST)
     p = r.predict(t.head(10))
     assert len(p) == 10 and p.between(0, 1).all()
-    p_forest = find_signature(t, "outcome", positive="case", n_splits=4, n_repeats=1, verbose=False).predict(t.head(5), "forest")
+    p_forest = find_signature(t, "outcome", positive="case", n_splits=4, n_repeats=1, verbose=False).predict(t.head(5), "random_forest")
     assert len(p_forest) == 5
     with pytest.raises(KeyError):
         r.predict(t.drop(columns=r.signature[0]))
@@ -133,3 +133,20 @@ def test_interval_stays_inside_the_range_of_the_metric():
     assert hi == 1.0 and lo < 1.0
     lo, hi = corrected_ci([-0.99, -1.0, -0.9], 40, 10, metric="spearman")
     assert lo == -1.0
+
+
+def test_old_model_names_still_work():
+    """'linear' and 'forest' (before 0.2.0) map to 'regression' and 'random_forest', with a warning."""
+    t = _table()
+    with pytest.warns(FutureWarning):
+        r = find_signature(t, "outcome", positive="case", n_splits=4, n_repeats=1, models=("linear",), verbose=False)
+    assert set(r.performance["model"]) == {"regression"}
+    with pytest.raises(ValueError):
+        find_signature(t, "outcome", positive="case", models=("svm",), verbose=False)
+
+
+def test_report_uses_professional_model_names():
+    t = _table()
+    text = str(find_signature(t, "outcome", positive="case", n_splits=4, n_repeats=1, verbose=False))
+    assert "logistic regression" in text and "random forest" in text and "lasso" in text
+    assert "assay" not in text and "L1" not in text

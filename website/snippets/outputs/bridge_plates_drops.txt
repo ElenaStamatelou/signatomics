@@ -1,0 +1,4 @@
+Bridging report
+  reference:  Plate 1 (kept as it is)
+  Plate 2:    92 proteins adjusted (median -0.54 NPX, from -1.67 to +0.93), from 11 bridge samples
+  originals:  NPX_unbridged and LOD_unbridged (NPX and LOD shifted together)

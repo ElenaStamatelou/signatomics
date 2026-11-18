@@ -77,7 +77,7 @@ def test_sample_qc_finds_the_abnormal_sample():
     rep = qc_report(df, outlier_sd=3, verbose=False)
     table = rep.samples
     assert table.loc[table["outlier"], "SampleID"].tolist() == ["S07"]
-    assert "outliers: 1 of 60 samples (S07)" in str(rep)
+    assert "outliers:       1 of 60 samples: S07 (more than 3 SD" in str(rep)
     fig = plot_sample_qc(df, sd=3)
     assert any(t.name and "outlier" in t.name for t in fig.data)
 
@@ -100,7 +100,7 @@ def test_bland_altman_shows_the_plate_shift_and_its_removal():
 
 def test_every_chart_follows_the_one_style():
     """All charts: interactive Plotly figures, a plain title, a subtitle in parts (" · "), the
-    legend above the plot, and Olink's words (assay, bridge samples)."""
+    legend above the plot, and Olink's words (protein, bridge samples)."""
     import plotly.graph_objects as go
 
     import signatomics.olink as so
@@ -117,5 +117,5 @@ def test_every_chart_follows_the_one_style():
         title, _, subtitle = fig.layout.title.text.partition("<br>")
         assert ":" not in title and "—" not in fig.layout.title.text and " - " not in subtitle
         names = " ".join(str(t.name) for t in fig.data) + fig.layout.title.text
-        assert "bridging sample" not in names and "protein" not in title
+        assert "bridging sample" not in names and "assay" not in title.lower()
         assert fig.layout.legend.yref == "container"

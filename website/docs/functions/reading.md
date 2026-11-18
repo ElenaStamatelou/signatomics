@@ -59,7 +59,7 @@ The report also warns when a file looks unusual, as seen in public NPX files:
 
 - numbers damaged by a spreadsheet's thousands separator (e.g. `1.205.603`), and NPX values far
   outside the usual range;
-- a `SampleID` column that seems to hold something else (each ID has only a few of the assays),
+- a `SampleID` column that seems to hold something else (each ID has only a few of the proteins),
   with the columns that may hold the sample IDs; `column_map={"SampleName": "SampleID"}` then
   keeps the file's own column as `SampleID_in_file`;
 - a `Sample_Type` column holding groups (such as `AD`, `HC`) instead of Olink's sample types: it
@@ -69,6 +69,12 @@ The report also warns when a file looks unusual, as seen in public NPX files:
 Missing optional columns (`LOD`, `PlateID`, `QC_Warning`) get a line in the reading report, with
 what each is needed for and, when a column name hints at one, a `column_map` suggestion.
 
+**Tested on** public NPX files from the
+[PRIDE affinity proteomics archive](https://www.ebi.ac.uk/pride/archive/affinity-proteomics):
+Target 48, Target 96, Explore 384, Explore 3072, Explore HT and Reveal; long `.csv` files (commas
+or semicolons, decimal points or commas), `.xlsx` and `.parquet`; and older wide files from NPX
+Manager.
+
 **Example**
 
 ```python
@@ -76,14 +82,7 @@ npx = so.read_npx("inflam_PRA_dt2.raw.csv")
 ```
 
 ```text
-Reading report
-  file: inflam_PRA_dt2.raw.csv
-  file type: .csv
-  layout: long format (one row per sample and assay)
-  columns renamed to the names signatomics uses: PlateLOD -> LOD
-  NPX: 184 cells said No Data, read as missing values
-  MissingFreq (missing frequency): percentages ("12%") read as fractions (0.12)
-  result: 8096 rows = 88 samples x 92 assays
+--8<-- "outputs/pad_read_plate2.txt"
 ```
 
 To read several plates, read each file and stack them:

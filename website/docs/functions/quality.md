@@ -27,8 +27,8 @@ It checks:
 - QC status per measurement: PASS, WARN or FAIL (older Target 96 exports: Pass / Warning);
 - completely empty measurements;
 - samples measured twice on the same plate (duplicate sample IDs) and bridge samples;
-- assays below the LOD in more than 75% of the samples (a sign of data quality);
-- outliers: samples whose median or spread over all assays lies more than 3 SD from the
+- proteins below the LOD in more than 75% of the samples (a sign of data quality);
+- outliers: samples whose median or spread over all proteins lies more than 3 SD from the
   others (Olink's standard sample check), reported as a count with their IDs.
 
 With `group`, it also checks whether a group is missing from a plate, and whether
@@ -42,7 +42,7 @@ detectability differs between groups.
 | `group` | str | `None` | a column of your sample metadata, e.g. `"diabetes"` |
 | `samples` | path or DataFrame | `None` | your sample metadata, when `group` is a column there: it is only looked up, and `npx` stays as it is |
 | `on` | str | `None` | with `samples`: the column that holds the same IDs as `SampleID` |
-| `max_below_lod` | float 0–1 | `0.75` | assays below the LOD in more than this share of the samples are *reported*, as a sign of data quality; they stay in the data |
+| `max_below_lod` | float 0–1 | `0.75` | proteins below the LOD in more than this share of the samples are *reported*, as a sign of data quality; they stay in the data |
 | `outlier_sd` | float | `3.0` | a measurement whose median or IQR over all proteins is more than this many standard deviations from the mean (per panel) is reported as odd |
 | `show_ids` | bool | `True` | list sample IDs; `False` gives counts only |
 | `verbose` | bool | `True` | print the report |
@@ -88,14 +88,7 @@ rep.samples[rep.samples["outlier"]]
 ```
 
 ```text
-Quality report
-  data: 178 measurements of 143 samples, 92 assays, 2 plates
-  QC status: 161 PASS, 17 WARN, 0 FAIL
-  WARNING empty measurements (no NPX value at all): 2 (IDs hidden)
-  bridge samples (on more than one plate): 35
-  assays below the LOD in more than 75% of the samples: 8 of 92 (a sign of data quality; they stay in)
-  outliers: 1 of 178 measurements (IDs hidden); see plot_sample_qc
-  WARNING group mixed up with plate: 'Prediabetes' is missing from Inflammation F.I.F 21/03/2024. A plate difference can then look like a group difference: bridge the plates before comparing groups.
+--8<-- "outputs/pad_qc_report.txt"
 ```
 
 The odd measurement is sample 249 on plate 2: about 5 NPX too low on almost every protein,
@@ -125,23 +118,23 @@ apply_qc(npx, *, drop_controls=True, drop_fail=True, drop_warnings=False, drop_e
 | `drop_fail` | bool | `True` | remove measurements with QC status FAIL (as Olink's own cleaning does) |
 | `drop_warnings` | bool | `False` | also remove measurements with QC status WARN; by default they are kept and counted in `qc_report` |
 | `repeats` | str | `"prefer_pass_then_last"` | for a sample measured more than once on the same plate: keep a passed measurement, and of those the last one (usually the rerun). Other options: `"first"`, `"last"`, `"keep_all"` |
-| `max_below_lod` | float 0–1 | `None` | remove assays below the LOD in more than this share. Default: **keep all assays**; removing them is usually not advised (see the note below) |
+| `max_below_lod` | float 0–1 | `None` | remove proteins below the LOD in more than this share. Default: **keep all proteins**; removing them is usually not advised (see the note below) |
 | `show_ids` | bool | `True` | list sample IDs in the report |
 | `verbose` | bool | `True` | print the report |
 
-The steps run in this order: controls → your samples → empty → FAIL → WARN (if asked) → measured twice on one plate → assays.
+The steps run in this order: controls → your samples → empty → FAIL → WARN (if asked) → measured twice on one plate → proteins.
 **Bridge samples are never removed as duplicates**: the same sample on *different* plates is what
 bridging needs.
 
 **Output.** The cleaned table, with the same columns. The list of removals is stored in
 `df.attrs["qc_applied"]`.
 
-!!! note "Why all assays are kept by default"
-    Olink advises excluding assays with a large share of samples below the LOD, with the
+!!! note "Why all proteins are kept by default"
+    Olink advises excluding proteins with a large share of samples below the LOD, with the
     cutoff "decided on a study basis", and also warns that some of the most distinct biomarkers
-    are low proteins. In practice cutoffs of 50% are common. signatomics reports assays above
-    75% as a sign of data quality and keeps them: an assay below the LOD in one group and above
-    it in another can be a biomarker, and assays without information drop out of the analysis
+    are low proteins. In practice cutoffs of 50% are common. signatomics reports proteins above
+    75% as a sign of data quality and keeps them: a protein below the LOD in one group and above
+    it in another can be a biomarker, and proteins without information drop out of the analysis
     anyway. Look at `qc_report(..., group=...)` or `plot_below_lod(..., group=...)` first.
 
 **Errors.** `ValueError` for an unknown `repeats` rule.
@@ -153,9 +146,7 @@ clean = so.apply_qc(data, show_ids=False)
 ```
 
 ```text
-Quality steps applied
-  removed 2 measurements (no NPX value at all): 2 (IDs hidden)
-  kept: 176 measurements of 143 samples, 92 assays
+--8<-- "outputs/pad_apply_qc.txt"
 ```
 
 A sensitivity check is one argument away: `so.apply_qc(data, drop_warnings=True)`.
@@ -254,5 +245,5 @@ The numbers behind it: [`qc_report(...).samples`](#qc_report).
 
 <figure class="sg-chart" markdown>
 <div class="sg-plot" data-src="../../assets/figures/sample_qc.json"><img src="../../assets/figures/sample_qc.svg" alt="Scatter of each measurement's median against its spread over all proteins, with one outlier ringed in red" loading="lazy"></div>
-<figcaption markdown>`plot_sample_qc(data)` on PAD000040: the red ring is sample 249 on plate 2, about 5 NPX too low on almost every protein.</figcaption>
+<figcaption markdown>`plot_sample_qc(data)` on PAD000040: the red ring is sample 249 on plate 2, about 5 NPX too low on almost every protein. Dashed lines: 3 SD from the others.</figcaption>
 </figure>

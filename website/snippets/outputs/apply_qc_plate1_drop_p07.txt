@@ -1,0 +1,5 @@
+Quality control applied
+  removed:  8 control samples: 3 NEGATIVE_CONTROL, 3 PLATE_CONTROL, 2 SAMPLE_CONTROL
+  removed:  1 measurement (your choice, drop_samples): P07
+  removed:  1 measurement (QC status FAIL): P20
+  kept:     38 samples, 92 proteins

@@ -1,0 +1,29 @@
+
+<figure class="sg-fig">
+<div class="sg-fig-scroll">
+<svg viewBox="0 0 880 200" role="img" aria-label="qc_report shows what is in the data: P01 with QC status PASS, P05 with WARN, P07 with PASS but an outlier, P20 with FAIL, and a negative control sample. apply_qc then removes the control sample and P20 (FAIL); P01 and P05 stay, and the outlier P07 stays until you decide to remove it.">
+  <text class="d-k" x="30" y="22">qc_report: what it finds</text>
+  <text class="d-t" x="30" y="50">SampleID</text><text class="d-t" x="130" y="50">SampleType</text><text class="d-t" x="290" y="50">QC status</text><text class="d-t" x="375" y="50">outlier</text>
+  <path class="d-rule" d="M30 58 H430"/>
+  <text class="d-m" x="30" y="78">P01</text><text class="d-m" x="130" y="78">SAMPLE</text><text class="d-m" x="290" y="78">PASS</text>
+  <text class="d-m" x="30" y="100">P05</text><text class="d-m" x="130" y="100">SAMPLE</text><text class="d-m d-acc" x="290" y="100">WARN</text>
+  <text class="d-m" x="30" y="122">P07</text><text class="d-m" x="130" y="122">SAMPLE</text><text class="d-m" x="290" y="122">PASS</text><text class="d-m d-acc" x="375" y="122">yes</text>
+  <text class="d-m" x="30" y="144">P20</text><text class="d-m" x="130" y="144">SAMPLE</text><text class="d-m d-acc" x="290" y="144">FAIL</text>
+  <text class="d-m" x="30" y="166">NEG CTRL 1</text><text class="d-m d-acc" x="130" y="166">NEGATIVE_CONTROL</text>
+
+  <path class="d-line" d="M450 112 H548"/><path class="d-head" d="M548 107 L557 112 L548 117 Z"/>
+  <text class="d-m" x="500" y="100" text-anchor="middle">apply_qc</text>
+
+  <text class="d-k" x="585" y="22">apply_qc: what stays</text>
+  <text class="d-t" x="585" y="50">SampleID</text><text class="d-t" x="680" y="50">result</text>
+  <path class="d-rule" d="M585 58 H860"/>
+  <text class="d-m" x="585" y="78">P01</text><text class="d-m" x="680" y="78">kept</text>
+  <text class="d-m" x="585" y="100">P05</text><text class="d-m" x="680" y="100">kept (WARN stays)</text>
+  <text class="d-m" x="585" y="122">P07</text><text class="d-m" x="680" y="122">kept, until you decide</text>
+  <text class="d-t" x="585" y="144">P20</text><text class="d-t" x="680" y="144">removed (FAIL)</text>
+  <text class="d-t" x="585" y="166">NEG CTRL 1</text><text class="d-t" x="680" y="166">removed (control)</text>
+  <path class="d-line" d="M580 140 H785 M580 162 H800"/>
+</svg>
+</div>
+<figcaption>In blue: what qc_report flags. By default apply_qc removes control samples and samples with QC status FAIL.</figcaption>
+</figure>

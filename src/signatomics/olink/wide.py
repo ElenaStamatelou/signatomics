@@ -1,4 +1,4 @@
-"""The analysis table: one row per sample, one column per assay, your sample metadata in front.
+"""The analysis table: one row per sample, one column per protein, your sample metadata in front.
 
 This is the hand-off between preprocessing and analysis: ``signatomics.stats`` (and later the
 signature search) work on this table. Run it last, after quality control, bridging and adding
@@ -9,11 +9,11 @@ What ``to_wide`` does, and reports:
 - control samples and control assays are left out;
 - a sample measured more than once (a bridge sample after bridging, or a repeat) gets the
   **average** of its NPX values, so every sample counts once;
-- each assay becomes one column, named after the assay; an assay name used by more than one
-  OlinkID (e.g. the same assay on several Explore panels) gets the OlinkID added;
+- each protein becomes one column, named after the protein; a protein name used by more than one
+  OlinkID (e.g. the same protein on several Explore panels) gets the OlinkID added;
 - the columns of your sample metadata (everything ``add_sample_info`` added) come first.
 
-The assay columns are listed in ``table.attrs["proteins"]``, so the analysis functions know which
+The protein columns are listed in ``table.attrs["proteins"]``, so the analysis functions know which
 columns hold NPX values and which hold sample metadata.
 """
 
@@ -23,8 +23,9 @@ import pandas as pd
 
 from .qc import _control_masks, _protein_col
 from .reader import COLUMN_VARIANTS, NUMERIC, _tidy_sample_ids
+from .._report import format_report
 
-# Columns that describe a measurement or an assay, never a sample's metadata
+# Columns that describe a measurement or a protein, never a sample's metadata
 OLINK_COLUMNS = set(COLUMN_VARIANTS) | set(NUMERIC) | {
     "sample", "NPX_unbridged", "LOD_unbridged", "Bridge_adjustment", "PlateLOD", "Unit",
     "Sample_Type", "ExploreVersion", "Block", "Count", "ExtNPX", "SampleQC", "AssayQC",
@@ -32,7 +33,7 @@ OLINK_COLUMNS = set(COLUMN_VARIANTS) | set(NUMERIC) | {
 
 
 def _assay_names(df: pd.DataFrame, protein: str) -> pd.Series:
-    """Column name per row: the assay name, with the OlinkID added where a name is used twice."""
+    """Column name per row: the protein name, with the OlinkID added where a name is used twice."""
     if protein == "Assay" or "Assay" not in df.columns:
         return df[protein].astype(str)
     pairs = df[["Assay", protein]].drop_duplicates()
@@ -53,13 +54,13 @@ def _sample_columns(df: pd.DataFrame) -> list[str]:
 
 
 def to_wide(npx: pd.DataFrame, *, values: str = "NPX", verbose: bool = True) -> pd.DataFrame:
-    """Turn the long NPX table into the analysis table: one row per sample, one column per assay.
+    """Turn the long NPX table into the analysis table: one row per sample, one column per protein.
 
     Parameters
     ----------
-    npx : the preprocessed long table (from ``prepare``, or from ``read_npx`` and the steps after
+    npx : the preprocessed long table (from ``read_npx`` and the steps after
         it). Sample metadata added with ``add_sample_info`` is carried over.
-    values : what goes in the assay columns:
+    values : what goes in the protein columns:
         ``"NPX"`` (default) the NPX value, averaged when a sample was measured more than once;
         ``"below_lod"`` True where that NPX value is below the detection limit (LOD averaged the
         same way). Pass this second table to ``compare_groups(below_lod=...)`` to see the share
@@ -67,7 +68,7 @@ def to_wide(npx: pd.DataFrame, *, values: str = "NPX", verbose: bool = True) -> 
     verbose : print the report.
 
     Returns a table with one row per sample (index ``sample``: the tidy sample ID), your sample
-    metadata first, then one column per assay. ``table.attrs["proteins"]`` lists the assay
+    metadata first, then one column per protein. ``table.attrs["proteins"]`` lists the protein
     columns; ``table.attrs["wide_report"]`` holds the report.
     """
     if values not in ("NPX", "below_lod"):
@@ -97,7 +98,7 @@ def to_wide(npx: pd.DataFrame, *, values: str = "NPX", verbose: bool = True) -> 
     several = counts[counts > 1].index.get_level_values("_sample").unique()
     if len(several):
         report.append(f"averaged: {len(several)} samples measured more than once (bridge samples "
-                      f"or repeats) get the average of their NPX values")
+                      f"or repeats): the mean of their NPX values")
 
     cells = df.groupby(["_sample", "_assay"])[["NPX"] + (["LOD"] if values == "below_lod" else [])].mean()
     if values == "NPX":
@@ -113,7 +114,7 @@ def to_wide(npx: pd.DataFrame, *, values: str = "NPX", verbose: bool = True) -> 
         meta = df.groupby("_sample")[meta_cols].first()
         clash = [c for c in meta_cols if c in wide.columns]
         if clash:
-            raise ValueError(f"Sample metadata columns with the name of an assay: {', '.join(clash)}. "
+            raise ValueError(f"Sample metadata columns with the name of a protein: {', '.join(clash)}. "
                              f"Rename them in your sample metadata.")
         table = meta.join(wide, how="right")
     else:
@@ -122,14 +123,14 @@ def to_wide(npx: pd.DataFrame, *, values: str = "NPX", verbose: bool = True) -> 
     table.columns.name = None
 
     missing = int(wide.isna().sum().sum())
-    report.append(f"result: {len(table)} samples x {wide.shape[1]} assays"
+    report.append(f"result: {len(table)} samples x {wide.shape[1]} proteins"
                   + (f", plus {len(meta_cols)} columns of sample metadata ({', '.join(meta_cols)})"
-                     if meta_cols else " (no sample metadata: add it with add_sample_info)"))
+                     if meta_cols else ", no sample metadata"))
     if missing:
-        report.append(f"empty cells: {missing} (a sample without a value for that assay)")
+        report.append(f"empty cells: {missing}")
 
     table.attrs["proteins"] = list(wide.columns)
     table.attrs["wide_report"] = report
     if verbose:
-        print("Analysis table\n  " + "\n  ".join(report))
+        print(format_report("Analysis table", report))
     return table

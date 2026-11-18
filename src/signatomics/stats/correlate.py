@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from ._common import StatsResult, _fmt_p, _n, _proteins, fdr_bh
+from ._common import StatsResult, _n, _proteins, fdr_bh, result_lines
 
 METHODS = ("spearman", "pearson")
 
@@ -55,8 +55,9 @@ def correlate(table: pd.DataFrame, variable: str, *, method: str = "spearman", p
     if x_all.notna().sum() < 3:
         raise ValueError(f"Column '{variable}' has fewer than 3 numbers.")
 
-    name = "Spearman's rank correlation" if method == "spearman" else "Pearson's correlation"
-    lines = [f"test: {name} with {variable}, {level:.0%} interval"]
+    name = "Spearman" if method == "spearman" else "Pearson"
+    title = f"Correlation with {variable} ({name})"
+    lines = [f"effect: correlation r, {level:.0%} interval"]
     lines.append(f"samples: {int(x_all.notna().sum())} with a value"
                  + (f"; left out: {_n(int(x_all.isna().sum()), 'sample')} without a value"
                     if x_all.isna().any() else ""))
@@ -84,16 +85,8 @@ def correlate(table: pd.DataFrame, variable: str, *, method: str = "spearman", p
         raise ValueError("No protein could be tested.")
     out["fdr"] = fdr_bh(out["p"])
     out = out.sort_values("p", kind="stable").reset_index(drop=True)
-    lines.append(f"tested: {_n(len(out), 'protein')}"
-                 + (f"; not tested: {len(skipped)} (see .not_tested)" if skipped else ""))
-    sig = out[out["fdr"] < alpha]
-    if sig.empty:
-        lines.append(f"FDR below {alpha}: none (lowest FDR {_fmt_p(out['fdr'].min())})")
-    else:
-        shown = [f"{r['protein']} (r {r['r']:+.2f}, FDR {_fmt_p(r['fdr'])})" for _, r in sig.head(8).iterrows()]
-        more = f", ... ({len(sig)} in total)" if len(sig) > 8 else ""
-        lines.append(f"FDR below {alpha}: {_n(len(sig), 'protein')}: " + ", ".join(shown) + more)
-    result = StatsResult(title="Correlation", lines=lines, table=out,
+    lines.extend(result_lines(out, alpha, skipped, lambda row: f"r {row['r']:+.2f}"))
+    result = StatsResult(title=title, lines=lines, table=out,
                          not_tested=pd.DataFrame(skipped, columns=["protein", "reason"]))
     if verbose:
         print(result)

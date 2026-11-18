@@ -1,0 +1,6 @@
+Bridging check
+  reference:  Plate 1
+  Plate 2:    +0.51 NPX compared with Plate 1 (median over proteins), from 12 bridge samples
+    per protein:  -1.05 to +1.67 NPX; 83 of 92 proteins shifted by more than 0.1
+    noise:        0.47 NPX per protein (typical IQR of the bridge samples' differences)
+    shift differently: P33 (bridge samples that shift unlike the others)

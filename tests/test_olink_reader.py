@@ -29,7 +29,7 @@ def test_reads_comma_file_and_reports(tmp_path):
     assert len(df) == 4
     assert df["SampleID"].nunique() == 2
     report = " ".join(df.attrs["read_report"])
-    assert "file type: .csv" in report and "2 samples x 2 assays" in report
+    assert "file type: .csv" in report and "2 samples x 2 proteins" in report
 
 
 def test_sample_ids_stay_text_with_leading_zeros(tmp_path):

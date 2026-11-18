@@ -20,8 +20,8 @@ and repeatable. If you work in R, Olink's own R package covers much of the clean
 
 Version 0.1.0, the first release. Preprocessing (data import, quality control, bridging, sample
 metadata, the analysis table), statistics (compare groups, correlate, adjusting for covariates)
-and the biomarker signature (find it, then check it) work, with 123 automatic tests. `prepare`
-does the preprocessing in one call, and built-in synthetic data lets you try everything.
+and the biomarker signature (find it, then check it) work, each covered by automatic tests. Built-in
+synthetic data lets you try everything.
 Version 0.x means function names may still change; every change is listed with each release.
 
 Found a bug, or something unclear? [Open an issue on GitHub](https://github.com/ElenaStamatelou/signatomics/issues):
@@ -34,10 +34,10 @@ feedback is very welcome.
   <li class="done">Quality control: a quality check and charts, then your choices applied, with every removal reported</li>
   <li class="done">Bridging plates and projects, with independent checks</li>
   <li class="done">Sample metadata, with a report of every ID without a match</li>
-  <li class="done">The usual route in one call (<code>prepare</code>), and built-in example data</li>
-  <li class="done">The analysis table: one row per sample, one column per assay (<code>to_wide</code>)</li>
-  <li class="done">Compare groups and correlate: one test chosen in advance, effect sizes with confidence intervals, FDR across all assays, volcano plots</li>
-  <li class="done">Adjust for confounders: one model per assay, unadjusted and adjusted volcano plots side by side</li>
+  <li class="done">Built-in synthetic example data</li>
+  <li class="done">The analysis table: one row per sample, one column per protein (<code>to_wide</code>)</li>
+  <li class="done">Compare groups and correlate: one test chosen in advance, effect sizes with confidence intervals, FDR across all proteins, volcano plots</li>
+  <li class="done">Adjust for confounders: one model per protein, unadjusted and adjusted volcano plots side by side</li>
   <li class="done">Find a biomarker signature: nested cross-validation, how often each protein is chosen, an honest estimate of performance</li>
   <li class="done">Check the signature: what each protein adds, learning and selection curves</li>
   <li>Before/after and repeated measurements</li>
